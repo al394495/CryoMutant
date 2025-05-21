@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class MapGenerator : MonoBehaviour
 {
-    public enum DrawMode {NoiseMap, ColorMap};
+    /*public enum DrawMode {NoiseMap, ColorMap};
     public DrawMode drawMode;
 
     public int mapWith;
@@ -71,6 +71,41 @@ public class MapGenerator : MonoBehaviour
         {
             octaves = 0;
         }
+    }*/
+
+    public static MapGenerator mapGenerator { get; private set; }
+
+    public int mapWith;
+    public int mapHeight;
+    public float noiseScale;
+
+    public int octaves;
+    [Range(0, 1)]
+    public float persistance;
+    public float lacunarity;
+
+    public int seed;
+    public Vector2 offset;
+
+    public float[,] noiseMap;
+
+    public void MapGeneratorInitializer()
+    {
+        mapGenerator.mapWith = mapWith;
+        mapGenerator.mapHeight = mapHeight;
+        mapGenerator.noiseScale = noiseScale;
+
+        mapGenerator.octaves = octaves;
+        mapGenerator.persistance = persistance;
+        mapGenerator.lacunarity = lacunarity;
+        mapGenerator.seed = seed;
+        mapGenerator.offset = offset;
+    }
+
+    public void CreatePartsMap()
+    {
+        noiseMap = Noise.GenerateNoiseMap(mapWith, mapHeight, seed, noiseScale, octaves, persistance, lacunarity, offset);
+
     }
 }
 
