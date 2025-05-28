@@ -4,40 +4,32 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-partial struct MySystem : ISystem
+partial struct GenerateHeightMapSystem : ISystem
 {
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         //EntitiesReferences entitiesReferences = SystemAPI.GetSingleton<EntitiesReferences>();
-        //MapGeneratorData mapGeneratorData = SystemAPI.GetSingleton<MapGeneratorData>();
+        MapGeneratorData mapGeneratorData = SystemAPI.GetSingleton<MapGeneratorData>();
 
         foreach (RefRW<MeshData> meshData  in SystemAPI.Query<RefRW<MeshData>>())
         {
             if (!meshData.ValueRO.onHeightMapGenerated)
             {
-                DynamicBuffer<FloatBuffer> floatBuffer = SystemAPI.GetBuffer<FloatBuffer>(meshData.ValueRO.myEntity);
 
-                NativeArray<float> help = GenerateNoiseMap();
-                Debug.Log(help.Length);
-                for (int i = 0; i < help.Length; i++)
-                {
-                    floatBuffer.Add(new FloatBuffer { value = help[i] });
-                }
-                if (floatBuffer.Length > 0)
-                {
-                    Debug.Log("Tengo el mapa de alturas :D");
-                }
+                GenerateNoiseMap(mapGeneratorData, meshData, ref state);
+ 
                 meshData.ValueRW.onHeightMapGenerated = true;
             }
         }
 
     }
 
-    public NativeArray<float> GenerateNoiseMap()
+    [BurstCompile]
+    public void GenerateNoiseMap(MapGeneratorData mapGeneratorData, RefRW<MeshData> meshData, ref SystemState state)
     {
-        MapGeneratorData mapGeneratorData = SystemAPI.GetSingleton<MapGeneratorData>();
+        //MapGeneratorData mapGeneratorData = SystemAPI.GetSingleton<MapGeneratorData>();
 
         NativeArray<float> noiseMap = new NativeArray<float>(mapGeneratorData.mapWidth * mapGeneratorData.mapHeight, Allocator.Temp);
 
@@ -105,7 +97,40 @@ partial struct MySystem : ISystem
             }
         }
 
-        return noiseMap;
+        //Create the mesh data with the height map created
+
+        float topLeftX = (mapGeneratorData.mapWidth - 1) / -2f;
+        float topLeftZ = (mapGeneratorData.mapHeight - 1) / 2f;
+
+        int vertexIndex = 0;
+
+        DynamicBuffer<VerticeFloat3Buffer> verticesBuffer = SystemAPI.GetBuffer<VerticeFloat3Buffer>(meshData.ValueRO.myEntity);
+        DynamicBuffer<TriangleIntBuffer> trianglesBuffer = SystemAPI.GetBuffer<TriangleIntBuffer>(meshData.ValueRO.myEntity);
+        DynamicBuffer<UvFloat2Buffer> uvsBuffer = SystemAPI.GetBuffer<UvFloat2Buffer>(meshData.ValueRO.myEntity);
+
+        for (int y = 0; y < mapGeneratorData.mapHeight; y++)
+        {
+            for(int x = 0; x < mapGeneratorData.mapWidth; x++)
+            {
+                verticesBuffer.Add(new VerticeFloat3Buffer { value = new float3(topLeftX + x, noiseMap[mapGeneratorData.mapHeight * y + x], topLeftZ - y) });
+                uvsBuffer.Add(new UvFloat2Buffer { value = new float2(x / (float)mapGeneratorData.mapWidth, y / (float)mapGeneratorData.mapHeight)});
+
+                if (x < mapGeneratorData.mapWidth - 1 && y < mapGeneratorData.mapHeight - 1)
+                {
+                    //First Triangle
+                    trianglesBuffer.Add(new TriangleIntBuffer { value = vertexIndex });
+                    trianglesBuffer.Add(new TriangleIntBuffer { value = vertexIndex + mapGeneratorData.mapWidth + 1 });
+                    trianglesBuffer.Add(new TriangleIntBuffer { value = vertexIndex + mapGeneratorData.mapWidth });
+
+                    //Second Triangle
+                    trianglesBuffer.Add(new TriangleIntBuffer { value = vertexIndex + mapGeneratorData.mapWidth + 1 });
+                    trianglesBuffer.Add(new TriangleIntBuffer { value = vertexIndex });
+                    trianglesBuffer.Add(new TriangleIntBuffer { value = vertexIndex + 1 });
+                }
+
+                vertexIndex++;
+            }
+        }
 
     }
 }

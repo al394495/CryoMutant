@@ -4,6 +4,7 @@ using UnityEngine;
 public class EntitiesReferenceAuthoring : MonoBehaviour
 {
     public GameObject terrainChunkPrefabGameObject;
+    public Material material;
 
     public class Baker : Baker<EntitiesReferenceAuthoring>
     {
@@ -12,7 +13,8 @@ public class EntitiesReferenceAuthoring : MonoBehaviour
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
             AddComponent(entity, new EntitiesReferences
             {
-                terrainChunkPrefabEntity = GetEntity(authoring.terrainChunkPrefabGameObject, TransformUsageFlags.Dynamic)
+                terrainChunkPrefabEntity = GetEntity(authoring.terrainChunkPrefabGameObject, TransformUsageFlags.Dynamic),
+                material = authoring.material
             });
         }
     }
@@ -22,4 +24,5 @@ public class EntitiesReferenceAuthoring : MonoBehaviour
 public struct EntitiesReferences : IComponentData
 {
     public Entity terrainChunkPrefabEntity;
+    public UnityObjectRef<Material> material;
 }

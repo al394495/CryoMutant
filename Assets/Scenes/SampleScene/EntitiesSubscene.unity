@@ -200,7 +200,7 @@ Transform:
   m_GameObject: {fileID: 108027393}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 25.68, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -219,6 +219,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   onHeightMapGenerated: 0
+  onMeshGenerated: 0
 --- !u!1 &388998868
 GameObject:
   m_ObjectHideFlags: 0
@@ -318,6 +319,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   terrainChunkPrefabGameObject: {fileID: 5512102785038654238, guid: 9699fc0089f50564d8e01f2fbe25f663, type: 3}
+  material: {fileID: 2100000, guid: c9bb1f98ef0601b47beb44ddd2fdb1c5, type: 2}
 --- !u!1 &1895774103
 GameObject:
   m_ObjectHideFlags: 0
@@ -399,7 +401,7 @@ Transform:
   m_GameObject: {fileID: 1895774103}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 20.7, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -418,6 +420,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   onHeightMapGenerated: 0
+  onMeshGenerated: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
