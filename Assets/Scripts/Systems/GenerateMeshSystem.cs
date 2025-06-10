@@ -15,7 +15,7 @@ partial struct GenerateMeshSystem : ISystem
 
     //[BurstCompile]
     public void OnUpdate(ref SystemState state)
-    {
+    {/*
         //Real code
         NativeQueue<RefRW<MeshData>> meshDataQueue = new NativeQueue<RefRW<MeshData>>(Allocator.Temp);
 
@@ -82,19 +82,22 @@ partial struct GenerateMeshSystem : ISystem
             //RenderMeshUtility.AddComponents(meshData.ValueRW.myEntity, state.EntityManager, desc, meshArray, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
 
             //RefRW<MeshData> meshData = meshDataQueue.Dequeue();
+            float scale = 5f;
+
+            float3 position = new float3(meshData.ValueRO.coord.x * meshData.ValueRO.size, 0f, meshData.ValueRO.coord.y * meshData.ValueRO.size);
 
             ecb.SetSharedComponentManaged<RenderMeshArray>(meshData.ValueRW.myEntity, meshArray);
             ecb.AddComponent(meshData.ValueRW.myEntity, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
             ecb.AddComponent(meshData.ValueRW.myEntity, new RenderBounds { Value = new AABB { Center = (meshData.ValueRO.max + meshData.ValueRO.min) * 0.5f, Extents = (meshData.ValueRO.max - meshData.ValueRO.min) * 0.5f } });
             ecb.AddComponent(meshData.ValueRW.myEntity, new WorldRenderBounds { Value = new AABB { Center = (meshData.ValueRO.max + meshData.ValueRO.min) * 0.5f, Extents = (meshData.ValueRO.max - meshData.ValueRO.min) * 0.5f } });
-            ecb.AddComponent(meshData.ValueRW.myEntity, new LocalTransform { Position = float3.zero, Rotation = quaternion.identity, Scale = 1f });
+            ecb.AddComponent(meshData.ValueRW.myEntity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
             ecb.AddComponent<LocalToWorld>(meshData.ValueRW.myEntity);
 
         }
 
         ecb.Playback(state.EntityManager);
 
-
+        */
 
 
 
@@ -168,27 +171,5 @@ partial struct GenerateMeshSystem : ISystem
         RenderMeshUtility.AddComponents(myEntity, state.EntityManager, desc, myRenderMeshArray, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
 
         */
-    }
-
-    public static AABB CalculateAABB(Vector3[] vertices)
-    {
-        if (vertices == null || vertices.Length == 0)
-            return new AABB();
-
-        float3 min = (float3)vertices[0];
-        float3 max = (float3)vertices[0];
-
-        for (int i = 1; i < vertices.Length; i++)
-        {
-            float3 v = (float3)vertices[i];
-            min = math.min(min, v);
-            max = math.max(max, v);
-        }
-
-        return new AABB
-        {
-            Center = (max + min) * 0.5f,
-            Extents = (max - min) * 0.5f
-        };
     }
 }

@@ -2,8 +2,6 @@ using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 using Unity.Mathematics;
-using Unity.Rendering;
-using System;
 
 public class MeshDataAuthoring : MonoBehaviour
 {
@@ -20,8 +18,6 @@ public class MeshDataAuthoring : MonoBehaviour
                 onHeightMapGenerated = authoring.onHeightMapGenerated,
                 onMeshGenerated = authoring.onMeshGenerated,
                 myEntity = entity,
-                min = new float3(10000, 10000, 10000),
-                max = new float3(-10000, -10000, -10000)
             });
             AddBuffer<VerticeFloat3Buffer>(entity);
             AddBuffer<TriangleIntBuffer>(entity);
@@ -32,29 +28,35 @@ public class MeshDataAuthoring : MonoBehaviour
 
 public struct MeshData : IComponentData
 {
-
     public bool onHeightMapGenerated;
     public bool onMeshGenerated;
 
-    public UnityObjectRef<Mesh> mesh;
-
-    public float3 min;
-    public float3 max;
-
     public Entity myEntity;
+
+    public float2 coord;
+    public int size;
 }
 
+[InternalBufferCapacity(81)]
 public struct VerticeFloat3Buffer : IBufferElementData
 {
     public float3 value;
 }
 
+[InternalBufferCapacity(486)]
 public struct TriangleIntBuffer : IBufferElementData
 {
     public int value;
 }
 
+[InternalBufferCapacity(81)]
 public struct UvFloat2Buffer : IBufferElementData
 {
     public float2 value;
+}
+
+[InternalBufferCapacity(81)]
+public struct NormalFloat3Buffer : IBufferElementData
+{
+    public float3 value;
 }

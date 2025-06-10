@@ -6,7 +6,7 @@ using UnityEngine;
 
 partial struct GenerateHeightMapSystem : ISystem
 {
-
+    /*
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
@@ -38,8 +38,8 @@ partial struct GenerateHeightMapSystem : ISystem
         NativeArray<float2> octaveOffsets = new NativeArray<float2>(mapGeneratorData.octaves, Allocator.Temp);
         for (int i = 0; i < mapGeneratorData.octaves; i++)
         {
-            float offsetX = prng.NextFloat(-100000, 100000) + mapGeneratorData.offset.x;
-            float offsetY = prng.NextFloat(-100000, 100000) + mapGeneratorData.offset.y;
+            float offsetX = prng.NextFloat(-100000, 100000) + meshData.ValueRO.coord.x;
+            float offsetY = prng.NextFloat(-100000, 100000) - meshData.ValueRO.coord.y;
             octaveOffsets[i] = new float2(offsetX, offsetY);
         }
 
@@ -65,8 +65,8 @@ partial struct GenerateHeightMapSystem : ISystem
 
                 for (int i = 0; i < mapGeneratorData.octaves; i++)
                 {
-                    float sampleX = (x - halfWidth) / scale * frequency + octaveOffsets[i].x;
-                    float sampleY = (y - halfHeight) / scale * frequency + octaveOffsets[i].y;
+                    float sampleX = (x - halfWidth + octaveOffsets[i].x) / scale * frequency;
+                    float sampleY = (y - halfHeight + octaveOffsets[i].y) / scale * frequency;
 
 
                     float perlinValue = ((noise.cnoise(new float2(sampleX, sampleY)) + 1f) * 0.5f )* 2 - 1;
@@ -132,5 +132,5 @@ partial struct GenerateHeightMapSystem : ISystem
             }
         }
 
-    }
+    }*/
 }
