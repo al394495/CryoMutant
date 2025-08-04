@@ -24,7 +24,7 @@ partial struct EndlessTerrainSystem : ISystem
         //help = SystemAPI.GetSingleton<Help>();
         chunckSize = 8;
 
-        maxViewDst = 300;
+        maxViewDst = 150;
 
         chunckVisibleInViewDistance = (int)math.round(maxViewDst / chunckSize);
 
