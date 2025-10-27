@@ -40,7 +40,7 @@ partial struct EndlessTerrainSystem : ISystem
         //LocalTransform viewerPosition = SystemAPI.GetComponent<LocalTransform>(viewer);
         help = SystemAPI.GetSingleton<Help>();
         LocalTransform viewerPosition = SystemAPI.GetComponent<LocalTransform>(help.help);
-        ecb.SetComponent<LocalTransform>(help.help, new LocalTransform { Position = new float3(viewerPosition.Position.x + 1f, 0 , viewerPosition.Position.z + 1f), Rotation = viewerPosition.Rotation, Scale = viewerPosition.Scale });
+        ecb.SetComponent<LocalTransform>(help.help, new LocalTransform { Position = new float3(viewerPosition.Position.x + 0.2f, 0 , viewerPosition.Position.z + 0.2f), Rotation = viewerPosition.Rotation, Scale = viewerPosition.Scale });
 
         //Debug.Log(viewerPosition.Position.x);
         //Debug.Log(viewerPosition.Position.z);
@@ -67,6 +67,7 @@ partial struct EndlessTerrainSystem : ISystem
                         coord = viewedChunckCoord * 8,
                         size = chunckSize
                     });
+                    ecb.AddComponent(inst, new VericesNotCreated());
                     ecb.AddBuffer<VerticeFloat3Buffer>(inst);
                     ecb.AddBuffer<TriangleIntBuffer>(inst);
                     ecb.AddBuffer<UvFloat2Buffer>(inst);
