@@ -4,8 +4,7 @@ using UnityEngine;
 
 public class MapGeneratorAuthoring : MonoBehaviour
 {
-    public int mapWidth;
-    public int mapHeight;
+    public int mapSize;
     public float noiseScale;
 
     public int octaves;
@@ -23,8 +22,7 @@ public class MapGeneratorAuthoring : MonoBehaviour
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
             AddComponent(entity, new MapGeneratorData
             {
-                mapWidth = authoring.mapWidth,
-                mapHeight = authoring.mapHeight,
+                mapSize = authoring.mapSize,
                 noiseScale = authoring.noiseScale,
                 octaves = authoring.octaves,
                 persistance = authoring.persistance,
@@ -39,8 +37,7 @@ public class MapGeneratorAuthoring : MonoBehaviour
 
 public struct MapGeneratorData : IComponentData
 {
-    public int mapWidth;
-    public int mapHeight;
+    public int mapSize;
     public float noiseScale;
 
     public int octaves;

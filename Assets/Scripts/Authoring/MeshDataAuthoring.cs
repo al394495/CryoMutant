@@ -53,25 +53,25 @@ public struct MeshNotCreated : IComponentData, IEnableableComponent
 
 }
 
-//[InternalBufferCapacity(81)]
+[InternalBufferCapacity(81)]
 public struct VerticeFloat3Buffer : IBufferElementData
 {
     public float3 value;
 }
 
-//[InternalBufferCapacity(486)]
+[InternalBufferCapacity(486)]
 public struct TriangleIntBuffer : IBufferElementData
 {
     public int value;
 }
 
-//[InternalBufferCapacity(81)]
+[InternalBufferCapacity(81)]
 public struct UvFloat2Buffer : IBufferElementData
 {
     public float2 value;
 }
 
-//[InternalBufferCapacity(81)]
+[InternalBufferCapacity(81)]
 public struct NormalFloat3Buffer : IBufferElementData
 {
     public float3 value;

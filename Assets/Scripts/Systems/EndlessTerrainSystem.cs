@@ -18,6 +18,7 @@ partial struct EndlessTerrainSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        diccionary.Dispose();
         diccionary = new NativeParallelHashMap<float2, Entity>(1000, Allocator.Persistent);
         //entitiesReferences = SystemAPI.GetSingleton<EntitiesReferences>();
         //mapGenerator = SystemAPI.GetSingleton<MapGeneratorData>();
@@ -27,6 +28,7 @@ partial struct EndlessTerrainSystem : ISystem
         maxViewDst = 150;
 
         chunckVisibleInViewDistance = (int)math.round(maxViewDst / chunckSize);
+
 
     }
 
@@ -39,11 +41,11 @@ partial struct EndlessTerrainSystem : ISystem
         //Entity viewer = entitiesReferences.example;
         //LocalTransform viewerPosition = SystemAPI.GetComponent<LocalTransform>(viewer);
         help = SystemAPI.GetSingleton<Help>();
+        Aux aux = SystemAPI.GetSingleton<Aux>();
         LocalTransform viewerPosition = SystemAPI.GetComponent<LocalTransform>(help.help);
         ecb.SetComponent<LocalTransform>(help.help, new LocalTransform { Position = new float3(viewerPosition.Position.x + 0.2f, 0 , viewerPosition.Position.z + 0.2f), Rotation = viewerPosition.Rotation, Scale = viewerPosition.Scale });
 
-        //Debug.Log(viewerPosition.Position.x);
-        //Debug.Log(viewerPosition.Position.z);
+
         int currentChunckCoordX = (int)math.round(viewerPosition.Position.x / chunckSize);
         int currentChunckCoordY = (int)math.round(viewerPosition.Position.z / chunckSize);
 
@@ -59,19 +61,18 @@ partial struct EndlessTerrainSystem : ISystem
                 }
                 else
                 {
-                    Entity inst = ecb.Instantiate(help.help);
+                    Entity inst = ecb.Instantiate(aux.auxEntity);
                     ecb.AddComponent<MeshData>(inst, new MeshData { 
                         onHeightMapGenerated = false,
                         onMeshGenerated = false,
                         myEntity = inst,
-                        coord = viewedChunckCoord * 8,
+                        coord = viewedChunckCoord * chunckSize,
                         size = chunckSize
                     });
                     ecb.AddComponent(inst, new VericesNotCreated());
                     ecb.AddBuffer<VerticeFloat3Buffer>(inst);
                     ecb.AddBuffer<TriangleIntBuffer>(inst);
                     ecb.AddBuffer<UvFloat2Buffer>(inst);
-                    //Debug.Log("Estoy Creando entidades :D");
 
                     diccionary.Add(viewedChunckCoord, inst);
                 }

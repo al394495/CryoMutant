@@ -38,12 +38,15 @@ partial struct GenerateChunckSystem : ISystem
 
         foreach ((RefRW<CoordInfo> coordInfo, EnabledRefRO<MeshNotCreated> created, Entity entity) in SystemAPI.Query<RefRW<CoordInfo>, EnabledRefRO<MeshNotCreated>>().WithEntityAccess())
         {
+
             DynamicBuffer<VerticeFloat3Buffer> verticesBuffer = SystemAPI.GetBuffer<VerticeFloat3Buffer>(entity);
             DynamicBuffer<UvFloat2Buffer> uvsBuffer = SystemAPI.GetBuffer<UvFloat2Buffer>(entity);
             DynamicBuffer<TriangleIntBuffer> trianglesBuffer = SystemAPI.GetBuffer<TriangleIntBuffer>(entity);
+            DynamicBuffer<NormalFloat3Buffer> normalsBuffer = SystemAPI.GetBuffer<NormalFloat3Buffer>(entity);
 
             Vector3[] vertices = new Vector3[verticesBuffer.Length];
             Vector2[] uvs = new Vector2[uvsBuffer.Length];
+            Vector3[] normals = new Vector3[normalsBuffer.Length];
             int[] triangles = new int[trianglesBuffer.Length];
 
             Mesh mesh = new Mesh();
@@ -55,6 +58,7 @@ partial struct GenerateChunckSystem : ISystem
             {
                 vertices[i] = verticesBuffer[i].value;
                 uvs[i] = uvsBuffer[i].value;
+                normals[i] = normalsBuffer[i].value;
 
                 min = math.min(verticesBuffer[i].value, min);
                 max = math.max(verticesBuffer[i].value, max);
@@ -68,7 +72,8 @@ partial struct GenerateChunckSystem : ISystem
             mesh.vertices = vertices;
             mesh.triangles = triangles;
             mesh.uv = uvs;
-            mesh.RecalculateNormals();
+            mesh.normals = normals;
+            //mesh.RecalculateNormals();
 
             RenderMeshArray meshArray = new RenderMeshArray(
                 new Material[] {
@@ -84,9 +89,9 @@ partial struct GenerateChunckSystem : ISystem
             int size = coordInfo.ValueRO.size;
             //Entity entity = meshData.ValueRW.myEntity;
 
-            float scale = 50f;
+            float scale = 1f;
 
-            float3 position = new float3(coord.x * size / 8, 0f, coord.y * size / 8);
+            float3 position = new float3(coord.x, 0f, coord.y);
 
             ecb.SetSharedComponentManaged<RenderMeshArray>(entity, meshArray);
             ecb.AddComponent(entity, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
@@ -116,7 +121,7 @@ public partial struct GenerateDataJob : IJobEntity
     public void Execute([EntityIndexInQuery] int entityInQueryIndex, ref MeshData meshData, ref DynamicBuffer<VerticeFloat3Buffer> verticesBuffer, ref DynamicBuffer<UvFloat2Buffer> uvsBuffer, ref DynamicBuffer<TriangleIntBuffer> trianglesBuffer, EnabledRefRO<VericesNotCreated> created)
     {
 
-        NativeArray<float> noiseMap = new NativeArray<float>(mapGeneratorDataJob.mapWidth * mapGeneratorDataJob.mapHeight, Allocator.Temp);
+        NativeArray<float> noiseMap = new NativeArray<float>((mapGeneratorDataJob.mapSize + 8) * (mapGeneratorDataJob.mapSize + 8), Allocator.Temp);
 
         float scale = mapGeneratorDataJob.noiseScale;
         Unity.Mathematics.Random prng = new Unity.Mathematics.Random((uint)mapGeneratorDataJob.seed);
@@ -145,12 +150,11 @@ public partial struct GenerateDataJob : IJobEntity
         float maxNoiseHeight = float.MinValue;
         float minNoiseHeight = float.MaxValue;
 
-        float halfWidth = mapGeneratorDataJob.mapWidth / 2f;
-        float halfHeight = mapGeneratorDataJob.mapHeight / 2f;
+        float halfSize = (mapGeneratorDataJob.mapSize + 8) / 2f;
 
-        for (int y = 0; y < mapGeneratorDataJob.mapHeight; y++)
+        for (int y = 0; y < (mapGeneratorDataJob.mapSize + 8); y++)
         {
-            for (int x = 0; x < mapGeneratorDataJob.mapWidth; x++)
+            for (int x = 0; x < (mapGeneratorDataJob.mapSize + 8); x++)
             {
                 amplitude = 1;
                 frequency = 1;
@@ -158,8 +162,8 @@ public partial struct GenerateDataJob : IJobEntity
 
                 for (int i = 0; i < mapGeneratorDataJob.octaves; i++)
                 {
-                    float sampleX = (x - halfWidth + octaveOffsets[i].x) / scale * frequency;
-                    float sampleY = (y - halfHeight + octaveOffsets[i].y) / scale * frequency;
+                    float sampleX = (x - halfSize + octaveOffsets[i].x) / scale * frequency;
+                    float sampleY = (y - halfSize + octaveOffsets[i].y) / scale * frequency;
 
 
                     float perlinValue = ((noise.cnoise(new float2(sampleX, sampleY)) + 1f) * 0.5f) * 2 - 1;
@@ -178,16 +182,16 @@ public partial struct GenerateDataJob : IJobEntity
                     minNoiseHeight = noiseHeight;
                 }
 
-                noiseMap[mapGeneratorDataJob.mapHeight * y + x] = noiseHeight;
+                noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x] = noiseHeight;
             }
         }
 
-        for (int y = 0; y < mapGeneratorDataJob.mapHeight; y++)
+        for (int y = 0; y < (mapGeneratorDataJob.mapSize + 8); y++)
         {
-            for (int x = 0; x < mapGeneratorDataJob.mapWidth; x++)
+            for (int x = 0; x < (mapGeneratorDataJob.mapSize + 8); x++)
             {
-                float normalizedHeight = (noiseMap[mapGeneratorDataJob.mapHeight * y + x] + 1) / (maxPossibleHeight / 0.9f);
-                noiseMap[mapGeneratorDataJob.mapHeight * y + x] = math.clamp(normalizedHeight, 0, int.MaxValue);
+                float normalizedHeight = (noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x] + 1) / (maxPossibleHeight / 0.9f);
+                noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x] = math.clamp(normalizedHeight, 0, int.MaxValue);
             }
         }
 
@@ -201,13 +205,13 @@ public partial struct GenerateDataJob : IJobEntity
         ecb.AddComponent(entityInQueryIndex, entity2, new Parent { Value = meshData.myEntity });
         ecb.AddComponent(entityInQueryIndex, entity3, new Parent { Value = meshData.myEntity });
 
-        ecb.AddComponent(entityInQueryIndex, meshData.myEntity, new MeshLODGroupComponent { LODDistances0 = new float4(500f, 2000f, 3000f, 0f), LocalReferencePoint = new float3(meshData.coord.x * 8, 0f, meshData.coord.y * 8) });
+        ecb.AddComponent(entityInQueryIndex, meshData.myEntity, new MeshLODGroupComponent { LODDistances0 = new float4(500f, 2000f, 3000f, 0f), LocalReferencePoint = new float3(meshData.coord.x * 10, 0f, meshData.coord.y * 10) });
         ecb.AddComponent(entityInQueryIndex, entity1, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 1 });
         ecb.AddComponent(entityInQueryIndex, entity2, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 2 });
         ecb.AddComponent(entityInQueryIndex, entity3, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 4 });
 
-        float topLeftX = (mapGeneratorDataJob.mapWidth - 1) / -2f;
-        float topLeftZ = (mapGeneratorDataJob.mapHeight - 1) / 2f;
+        float topLeftX = (mapGeneratorDataJob.mapSize - 1) / -2f;
+        float topLeftZ = (mapGeneratorDataJob.mapSize - 1) / 2f;
 
         int currentLod = 1;
 
@@ -221,47 +225,153 @@ public partial struct GenerateDataJob : IJobEntity
         capacity[1] = 25;
         capacity[2] = 9;
 
+        NativeArray<int> capacityBorder = new NativeArray<int>(3, Allocator.Temp);
+        capacityBorder[0] = 121;
+        capacityBorder[1] = 49;
+        capacityBorder[2] = 25;
+
+        NativeArray<int> borderIndexArray = new NativeArray<int>(3, Allocator.Temp);
+        borderIndexArray[0] = 3;
+        borderIndexArray[1] = 2;
+        borderIndexArray[2] = 0;
+
         for (int i = 0; i < 3; i++)
         {
             int vertexIndex = 0;
             int triangleIndex = 0;
 
+            int vertexIndexBorder = 0;
+
             Entity currentKid = kids[i];
             int currentCapacity = capacity[i];
+
+            int currentCapacityBorder = capacityBorder[i];
+            int borderIndex = borderIndexArray[i];
+
+            float topLeftBorderX = (mapGeneratorDataJob.mapSize - 1 + currentLod * 2) / -2f;
+            float topLeftBorderZ = (mapGeneratorDataJob.mapSize - 1 + currentLod * 2) / 2f;
 
             NativeArray<VerticeFloat3Buffer> verticesArray = new NativeArray<VerticeFloat3Buffer>(currentCapacity, Allocator.Temp);
             NativeArray<UvFloat2Buffer> uvsArray = new NativeArray<UvFloat2Buffer>(currentCapacity, Allocator.Temp);
             NativeArray<TriangleIntBuffer> trianglesArray = new NativeArray<TriangleIntBuffer>(currentCapacity * 6, Allocator.Temp);
+            NativeArray<NormalFloat3Buffer> normalsArray = new NativeArray<NormalFloat3Buffer> (currentCapacity, Allocator.Temp);
 
-            for (int y = 0; y < mapGeneratorDataJob.mapHeight; y += currentLod)
+            NativeArray<float3> verticesBorderArray = new NativeArray<float3>(currentCapacityBorder, Allocator.Temp);
+
+            for (int y = 0; y < mapGeneratorDataJob.mapSize + 8; y += currentLod)
             {
-                for(int x = 0; x < mapGeneratorDataJob.mapWidth; x += currentLod)
+                for(int x = 0; x < mapGeneratorDataJob.mapSize + 8; x += currentLod)
                 {
-                    verticesArray[vertexIndex] = new VerticeFloat3Buffer { value = new float3(topLeftX + x, (math.pow(noiseMap[mapGeneratorDataJob.mapHeight * y + x], 3)) * 150f, topLeftZ - y )};
-                    uvsArray[vertexIndex] = new UvFloat2Buffer { value = new float2((x / (float)mapGeneratorDataJob.mapWidth), (y / (float)mapGeneratorDataJob.mapHeight)) };
-
-                    if (x < mapGeneratorDataJob.mapWidth - 1 && y < mapGeneratorDataJob.mapHeight - 1)
+                    if (x >= borderIndex && y >= borderIndex && x <= mapGeneratorDataJob.mapSize + 7 - borderIndex && y <= mapGeneratorDataJob.mapSize + 7 - borderIndex )
                     {
-                        //First Triangle
-                        trianglesArray[triangleIndex] = (new TriangleIntBuffer { value = vertexIndex });
-                        trianglesArray[triangleIndex + 1] = (new TriangleIntBuffer { value = vertexIndex + (mapGeneratorDataJob.mapWidth - 1) / (currentLod) + 2 });
-                        trianglesArray[triangleIndex + 2] = (new TriangleIntBuffer { value = vertexIndex + (mapGeneratorDataJob.mapWidth - 1) / (currentLod) + 1 });
+                        //Debug.Log("Vertice Borde: " + new float3(topLeftBorderX + x - borderIndex, (math.pow(noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x], 3)) * 150f, topLeftBorderZ - y + borderIndex));
 
-                        //Second Triangle
-                        trianglesArray[triangleIndex + 3] = (new TriangleIntBuffer { value = vertexIndex + (mapGeneratorDataJob.mapWidth - 1) / (currentLod) + 2 });
-                        trianglesArray[triangleIndex + 4] = (new TriangleIntBuffer { value = vertexIndex });
-                        trianglesArray[triangleIndex + 5] = (new TriangleIntBuffer { value = vertexIndex + 1 });
+                        verticesBorderArray[vertexIndexBorder] = new float3(topLeftBorderX + x - borderIndex, (math.pow(noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x], 3)) * 150f, topLeftBorderZ - y + borderIndex);
 
-                        triangleIndex += 6;
+                        vertexIndexBorder++;
                     }
 
-                    vertexIndex++;
+                    if (x > 3 && y > 3 && x < mapGeneratorDataJob.mapSize + 4 && y < mapGeneratorDataJob.mapSize + 4)
+                    {
+                        //Debug.Log("Vertice: " + new float3(topLeftX + x - 4, (math.pow(noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x], 3)) * 150f, topLeftZ - y + 4));
+
+                        verticesArray[vertexIndex] = new VerticeFloat3Buffer { value = new float3(topLeftX + x - 4, (math.pow(noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x], 3)) * 150f, topLeftZ - y + 4) };
+                        uvsArray[vertexIndex] = new UvFloat2Buffer { value = new float2(((x - 4) / (float)mapGeneratorDataJob.mapSize), ((y - 4) / (float)mapGeneratorDataJob.mapSize)) };
+
+                        if (x < mapGeneratorDataJob.mapSize - 1 && y < mapGeneratorDataJob.mapSize - 1)
+                        {
+                            //First Triangle
+                            trianglesArray[triangleIndex] = (new TriangleIntBuffer { value = vertexIndex });
+                            trianglesArray[triangleIndex + 1] = (new TriangleIntBuffer { value = vertexIndex + (mapGeneratorDataJob.mapSize - 1) / (currentLod) + 2 });
+                            trianglesArray[triangleIndex + 2] = (new TriangleIntBuffer { value = vertexIndex + (mapGeneratorDataJob.mapSize - 1) / (currentLod) + 1 });
+
+                            //Second Triangle
+                            trianglesArray[triangleIndex + 3] = (new TriangleIntBuffer { value = vertexIndex + (mapGeneratorDataJob.mapSize - 1) / (currentLod) + 2 });
+                            trianglesArray[triangleIndex + 4] = (new TriangleIntBuffer { value = vertexIndex });
+                            trianglesArray[triangleIndex + 5] = (new TriangleIntBuffer { value = vertexIndex + 1 });
+
+                            triangleIndex += 6;
+                        }
+
+                        vertexIndex++;
+                    }
                 }
+            }
+
+            int diference = (mapGeneratorDataJob.mapSize - 1) / currentLod + 2;
+
+            for (int y = 0; y < (mapGeneratorDataJob.mapSize - 1) / currentLod + 2; y++)
+            {
+                for (int x = 0; x < (mapGeneratorDataJob.mapSize - 1) / currentLod + 2; x++)
+                {
+                    int size = ((mapGeneratorDataJob.mapSize - 1) / currentLod + 3);
+                    int index = size * y + x;
+
+                    //First Triangle
+                    float3 pointA = verticesBorderArray[index];
+                    float3 pointB = verticesBorderArray[index + size + 1];
+                    float3 pointC = verticesBorderArray[index + size];
+
+                    float3 vectorAB = pointB - pointA;
+                    float3 vectorAC = pointC - pointA;
+
+                    float3 triangleNormal = math.cross(vectorAB, vectorAC);
+
+                    if (x > 0 && x <= size - 1 && y > 0 && y < size - 2)
+                    {
+                        normalsArray[index - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index - diference].value };
+                    }
+
+                    if(x + 1 > 0 && x + 1 <= size - 1 && y + 1 > 0 && y + 1 < size - 2)
+                    {
+                        normalsArray[index + size + 1 - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size + 1 - diference].value };
+                    }
+
+                    if (x > 0 && x <= size - 1 && y + 1 > 0 && y + 1 < size - 2)
+                    {
+                        normalsArray[index + size - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size - diference].value };
+                    }
+
+                    //Second Triangle
+                    pointA = verticesBorderArray[index + size + 1];
+                    pointB = verticesBorderArray[index];
+                    pointC = verticesBorderArray[index + 1];
+
+                    vectorAB = pointB - pointA;
+                    vectorAC = pointC - pointA;
+
+                    triangleNormal = math.cross(vectorAB, vectorAC);
+
+                    if (x + 1 > 0 && x + 1 <= size - 1 && y + 1 > 0 && y + 1 < size - 2)
+                    {
+                        normalsArray[index + size + 1 - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size + 1 - diference].value };
+                    }
+
+                    if (x > 0 && x <= size - 1 && y > 0 && y < size - 2)
+                    {
+                        normalsArray[index - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index - diference].value };
+                    }
+
+                    if (x + 1 > 0 && x + 1 <= size - 1 && y > 0 && y < size - 2)
+                    {
+                        normalsArray[index + 1 - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + 1 - diference].value };
+                    }
+
+
+                }
+
+                diference += 2;
+            }
+
+            for (int j = 0; j < normalsArray.Length; j++)
+            {
+                normalsArray[j] = new NormalFloat3Buffer { value = math.normalize(normalsArray[j].value) };
             }
 
             ecb.AddBuffer<VerticeFloat3Buffer>(entityInQueryIndex, currentKid).CopyFrom(verticesArray);
             ecb.AddBuffer<UvFloat2Buffer>(entityInQueryIndex, currentKid).CopyFrom(uvsArray);
             ecb.AddBuffer<TriangleIntBuffer>(entityInQueryIndex, currentKid).CopyFrom(trianglesArray);
+            ecb.AddBuffer<NormalFloat3Buffer>(entityInQueryIndex, currentKid).CopyFrom(normalsArray);
 
             ecb.AddComponent(entityInQueryIndex, currentKid, new MeshNotCreated());
 
