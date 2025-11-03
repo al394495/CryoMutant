@@ -49,6 +49,8 @@ partial struct GenerateChunckSystem : ISystem
             Vector3[] normals = new Vector3[normalsBuffer.Length];
             int[] triangles = new int[trianglesBuffer.Length];
 
+            //Debug.Log("Tengo tantos vertices " + vertices.Length);
+
             Mesh mesh = new Mesh();
 
             float3 min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
@@ -75,6 +77,11 @@ partial struct GenerateChunckSystem : ISystem
             mesh.normals = normals;
             //mesh.RecalculateNormals();
 
+            /*for (int i = 0; i < verticesBuffer.Length; i++)
+            {
+                Debug.Log("Vertice " + i + ": " + vertices[i]);
+            }*/
+
             RenderMeshArray meshArray = new RenderMeshArray(
                 new Material[] {
                 entitiesReferences.material
@@ -89,7 +96,7 @@ partial struct GenerateChunckSystem : ISystem
             int size = coordInfo.ValueRO.size;
             //Entity entity = meshData.ValueRW.myEntity;
 
-            float scale = 1f;
+            float scale = 10f;
 
             float3 position = new float3(coord.x, 0f, coord.y);
 
@@ -205,7 +212,7 @@ public partial struct GenerateDataJob : IJobEntity
         ecb.AddComponent(entityInQueryIndex, entity2, new Parent { Value = meshData.myEntity });
         ecb.AddComponent(entityInQueryIndex, entity3, new Parent { Value = meshData.myEntity });
 
-        ecb.AddComponent(entityInQueryIndex, meshData.myEntity, new MeshLODGroupComponent { LODDistances0 = new float4(500f, 2000f, 3000f, 0f), LocalReferencePoint = new float3(meshData.coord.x * 10, 0f, meshData.coord.y * 10) });
+        ecb.AddComponent(entityInQueryIndex, meshData.myEntity, new MeshLODGroupComponent { LODDistances0 = new float4(300f, 1000f, 1500f, 0f), LocalReferencePoint = new float3(meshData.coord.x * 10, 0f, meshData.coord.y * 10) });
         ecb.AddComponent(entityInQueryIndex, entity1, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 1 });
         ecb.AddComponent(entityInQueryIndex, entity2, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 2 });
         ecb.AddComponent(entityInQueryIndex, entity3, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 4 });
@@ -317,19 +324,19 @@ public partial struct GenerateDataJob : IJobEntity
 
                     float3 triangleNormal = math.cross(vectorAB, vectorAC);
 
-                    if (x > 0 && x <= size - 1 && y > 0 && y < size - 2)
+                    if (x > 0 && x < size - 1 && y > 0 && y < size - 1)
                     {
                         normalsArray[index - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index - diference].value };
                     }
 
-                    if(x + 1 > 0 && x + 1 <= size - 1 && y + 1 > 0 && y + 1 < size - 2)
+                    if(x + 1 > 0 && x + 1 < size - 1 && y + 1 > 0 && y + 1 < size - 1)
                     {
-                        normalsArray[index + size + 1 - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size + 1 - diference].value };
+                        normalsArray[index + size + 1 - (diference + 2)] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size + 1 - (diference + 2)].value };
                     }
 
-                    if (x > 0 && x <= size - 1 && y + 1 > 0 && y + 1 < size - 2)
+                    if (x > 0 && x < size - 1 && y + 1 > 0 && y + 1 < size - 1)
                     {
-                        normalsArray[index + size - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size - diference].value };
+                        normalsArray[index + size - (diference + 2)] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size - (diference + 2)].value };
                     }
 
                     //Second Triangle
@@ -342,17 +349,17 @@ public partial struct GenerateDataJob : IJobEntity
 
                     triangleNormal = math.cross(vectorAB, vectorAC);
 
-                    if (x + 1 > 0 && x + 1 <= size - 1 && y + 1 > 0 && y + 1 < size - 2)
+                    if (x + 1 > 0 && x + 1 < size - 1 && y + 1 > 0 && y + 1 < size - 1)
                     {
-                        normalsArray[index + size + 1 - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size + 1 - diference].value };
+                        normalsArray[index + size + 1 - (diference + 2)] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + size + 1 - (diference + 2)].value };
                     }
 
-                    if (x > 0 && x <= size - 1 && y > 0 && y < size - 2)
+                    if (x > 0 && x < size - 1 && y > 0 && y < size - 1)
                     {
                         normalsArray[index - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index - diference].value };
                     }
 
-                    if (x + 1 > 0 && x + 1 <= size - 1 && y > 0 && y < size - 2)
+                    if (x + 1 > 0 && x + 1 < size - 1 && y > 0 && y < size - 1)
                     {
                         normalsArray[index + 1 - diference] = new NormalFloat3Buffer { value = triangleNormal + normalsArray[index + 1 - diference].value };
                     }

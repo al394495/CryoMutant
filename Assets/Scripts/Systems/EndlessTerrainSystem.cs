@@ -66,7 +66,7 @@ partial struct EndlessTerrainSystem : ISystem
                         onHeightMapGenerated = false,
                         onMeshGenerated = false,
                         myEntity = inst,
-                        coord = viewedChunckCoord * chunckSize,
+                        coord = viewedChunckCoord * chunckSize / 2,
                         size = chunckSize
                     });
                     ecb.AddComponent(inst, new VericesNotCreated());
