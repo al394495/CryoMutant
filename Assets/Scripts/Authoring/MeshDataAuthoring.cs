@@ -53,6 +53,11 @@ public struct MeshNotCreated : IComponentData, IEnableableComponent
 
 }
 
+public struct DecorationsNotCreated : IComponentData, IEnableableComponent
+{
+
+}
+
 [InternalBufferCapacity(81)]
 public struct VerticeFloat3Buffer : IBufferElementData
 {

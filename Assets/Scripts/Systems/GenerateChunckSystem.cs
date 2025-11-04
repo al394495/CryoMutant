@@ -60,6 +60,7 @@ partial struct GenerateChunckSystem : ISystem
             {
                 vertices[i] = verticesBuffer[i].value;
                 uvs[i] = uvsBuffer[i].value;
+
                 normals[i] = normalsBuffer[i].value;
 
                 min = math.min(verticesBuffer[i].value, min);
@@ -75,12 +76,6 @@ partial struct GenerateChunckSystem : ISystem
             mesh.triangles = triangles;
             mesh.uv = uvs;
             mesh.normals = normals;
-            //mesh.RecalculateNormals();
-
-            /*for (int i = 0; i < verticesBuffer.Length; i++)
-            {
-                Debug.Log("Vertice " + i + ": " + vertices[i]);
-            }*/
 
             RenderMeshArray meshArray = new RenderMeshArray(
                 new Material[] {
@@ -100,19 +95,38 @@ partial struct GenerateChunckSystem : ISystem
 
             float3 position = new float3(coord.x, 0f, coord.y);
 
+            ecb.AddComponent(entity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
             ecb.SetSharedComponentManaged<RenderMeshArray>(entity, meshArray);
             ecb.AddComponent(entity, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
             ecb.AddComponent(entity, new RenderBounds { Value = new AABB { Center = (max + min) * 0.5f, Extents = (max - min) * 0.5f } });
-            ecb.AddComponent(entity, new WorldRenderBounds { Value = new AABB { Center = (max + min) * 0.5f, Extents = (max - min) * 0.5f } });
-            ecb.AddComponent(entity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
-            ecb.AddComponent<LocalToWorld>(entity);
 
             ecb.SetComponentEnabled<MeshNotCreated>(entity, false);
+
+            if (vertices.Length == 81)
+            {
+                ecb.AddComponent(entity, new DecorationsNotCreated());
+            }
 
             //meshData.ValueRW.onMeshGenerated = true;
         }
 
         ecb.Playback(state.EntityManager);
+
+
+        EntityCommandBuffer ecb3 = new EntityCommandBuffer(Allocator.TempJob);
+
+        GenerateDecorationsJob generateDecorationsJob = new GenerateDecorationsJob
+        {
+            mapGeneratorDataJob = mapGeneratorData,
+            entitiesReferences = entitiesReferences,
+            ecb = ecb3.AsParallelWriter(),
+        };
+
+        generateDecorationsJob.ScheduleParallel(state.Dependency).Complete();
+
+        ecb3.Playback(state.EntityManager);
+
+        ecb3.Dispose();
 
     }
 }
@@ -271,8 +285,6 @@ public partial struct GenerateDataJob : IJobEntity
                 {
                     if (x >= borderIndex && y >= borderIndex && x <= mapGeneratorDataJob.mapSize + 7 - borderIndex && y <= mapGeneratorDataJob.mapSize + 7 - borderIndex )
                     {
-                        //Debug.Log("Vertice Borde: " + new float3(topLeftBorderX + x - borderIndex, (math.pow(noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x], 3)) * 150f, topLeftBorderZ - y + borderIndex));
-
                         verticesBorderArray[vertexIndexBorder] = new float3(topLeftBorderX + x - borderIndex, (math.pow(noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x], 3)) * 150f, topLeftBorderZ - y + borderIndex);
 
                         vertexIndexBorder++;
@@ -280,12 +292,10 @@ public partial struct GenerateDataJob : IJobEntity
 
                     if (x > 3 && y > 3 && x < mapGeneratorDataJob.mapSize + 4 && y < mapGeneratorDataJob.mapSize + 4)
                     {
-                        //Debug.Log("Vertice: " + new float3(topLeftX + x - 4, (math.pow(noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x], 3)) * 150f, topLeftZ - y + 4));
-
                         verticesArray[vertexIndex] = new VerticeFloat3Buffer { value = new float3(topLeftX + x - 4, (math.pow(noiseMap[(mapGeneratorDataJob.mapSize + 8) * y + x], 3)) * 150f, topLeftZ - y + 4) };
-                        uvsArray[vertexIndex] = new UvFloat2Buffer { value = new float2(((x - 4) / (float)mapGeneratorDataJob.mapSize), ((y - 4) / (float)mapGeneratorDataJob.mapSize)) };
+                        uvsArray[vertexIndex] = new UvFloat2Buffer { value = new float2(((x - 4) / (float)(mapGeneratorDataJob.mapSize - 1)), ( 1 - (y - 4) / (float)(mapGeneratorDataJob.mapSize - 1))) };
 
-                        if (x < mapGeneratorDataJob.mapSize - 1 && y < mapGeneratorDataJob.mapSize - 1)
+                        if (x < mapGeneratorDataJob.mapSize + 3  && y < mapGeneratorDataJob.mapSize + 3)
                         {
                             //First Triangle
                             trianglesArray[triangleIndex] = (new TriangleIntBuffer { value = vertexIndex });
@@ -390,4 +400,50 @@ public partial struct GenerateDataJob : IJobEntity
         ecb.SetComponentEnabled<VericesNotCreated>(entityInQueryIndex, meshData.myEntity, false);
         
     }
+}
+
+[BurstCompile]
+public partial struct GenerateDecorationsJob : IJobEntity
+{
+    public MapGeneratorData mapGeneratorDataJob;
+    public EntitiesReferences entitiesReferences;
+    public EntityCommandBuffer.ParallelWriter ecb;
+
+    public void Execute([EntityIndexInQuery] int entityInQueryIndex, ref DynamicBuffer<VerticeFloat3Buffer> verticesBuffer, ref CoordInfo coordInfo, EnabledRefRO<DecorationsNotCreated> created, Entity entity)
+    {
+        NativeList<float3> treesPositions = new NativeList<float3>(Allocator.Temp);
+
+        for (int y = 0; y < mapGeneratorDataJob.mapSize; y++)
+        {
+            for (int x = 0; x < mapGeneratorDataJob.mapSize; x++)
+            {
+                if (verticesBuffer[mapGeneratorDataJob.mapSize * y + x].value.y > 3f)
+                {
+                    bool plantTree = true;
+
+                    for (int i = 0; i < treesPositions.Length; i++)
+                    {
+                        if (math.distancesq(treesPositions[i], verticesBuffer[mapGeneratorDataJob.mapSize * y + x].value) < 60f)
+                        {
+                            plantTree = false;
+                        }
+                    }
+
+                    if (plantTree) 
+                    {
+                        float3 vertexPosition = verticesBuffer[mapGeneratorDataJob.mapSize * y + x].value;
+                        float3 position = new float3(coordInfo.coord.x + vertexPosition.x, vertexPosition.y - 0.1f, coordInfo.coord.y + vertexPosition.z);
+                        treesPositions.Add(vertexPosition);
+
+                        Entity tree = ecb.Instantiate(entityInQueryIndex, entitiesReferences.treePrefabEntity);
+                        ecb.SetComponent(entityInQueryIndex, tree, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 5f });
+                        ecb.SetComponent(entityInQueryIndex, tree, new MeshLODGroupComponent { LODDistances0 = new float4(300f, 1000f, 1500f, 0f), LocalReferencePoint = new float3(coordInfo.coord.x + vertexPosition.x, vertexPosition.y, coordInfo.coord.y + vertexPosition.z) });
+                    }
+                }
+            }
+        }
+
+        ecb.SetComponentEnabled<DecorationsNotCreated>(entityInQueryIndex, entity, false);
+    }
+
 }
