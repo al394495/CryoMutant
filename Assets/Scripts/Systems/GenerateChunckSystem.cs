@@ -5,6 +5,7 @@ using Unity.Mathematics;
 using Unity.Rendering;
 using UnityEngine;
 using Unity.Transforms;
+using Unity.Physics;
 
 partial struct GenerateChunckSystem : ISystem
 {
@@ -44,6 +45,9 @@ partial struct GenerateChunckSystem : ISystem
             DynamicBuffer<TriangleIntBuffer> trianglesBuffer = SystemAPI.GetBuffer<TriangleIntBuffer>(entity);
             DynamicBuffer<NormalFloat3Buffer> normalsBuffer = SystemAPI.GetBuffer<NormalFloat3Buffer>(entity);
 
+            NativeArray<float3> verticesNativeArray = new NativeArray<float3>(verticesBuffer.Length, Allocator.Temp);
+            NativeArray<int3> trianglesNativeArray = new NativeArray<int3>(trianglesBuffer.Length, Allocator.Temp);
+
             Vector3[] vertices = new Vector3[verticesBuffer.Length];
             Vector2[] uvs = new Vector2[uvsBuffer.Length];
             Vector3[] normals = new Vector3[normalsBuffer.Length];
@@ -63,13 +67,27 @@ partial struct GenerateChunckSystem : ISystem
 
                 normals[i] = normalsBuffer[i].value;
 
+                verticesNativeArray[i] = verticesBuffer[i].value;
+
                 min = math.min(verticesBuffer[i].value, min);
                 max = math.max(verticesBuffer[i].value, max);
             }
 
+            int count = 0;
+            int triangleCount = 0;
+
             for (int i = 0; i < trianglesBuffer.Length; i++)
             {
                 triangles[i] = trianglesBuffer[i].value;
+
+                if ((count + 1) % 3 == 0)
+                {
+                    trianglesNativeArray[triangleCount] = new int3(trianglesBuffer[i - 2].value, trianglesBuffer[i - 1].value, trianglesBuffer[i].value);
+
+                    triangleCount++;
+                }
+
+                count++;
             }
 
             mesh.vertices = vertices;
@@ -78,7 +96,7 @@ partial struct GenerateChunckSystem : ISystem
             mesh.normals = normals;
 
             RenderMeshArray meshArray = new RenderMeshArray(
-                new Material[] {
+                new UnityEngine.Material[] {
                 entitiesReferences.material
                 }, new Mesh[] {
                 mesh,
@@ -105,6 +123,10 @@ partial struct GenerateChunckSystem : ISystem
             if (vertices.Length == 81)
             {
                 ecb.AddComponent(entity, new DecorationsNotCreated());
+
+
+                ecb.AddComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
+
             }
 
             //meshData.ValueRW.onMeshGenerated = true;
@@ -413,35 +435,51 @@ public partial struct GenerateDecorationsJob : IJobEntity
     {
         NativeList<float3> treesPositions = new NativeList<float3>(Allocator.Temp);
 
-        for (int y = 0; y < mapGeneratorDataJob.mapSize; y++)
+        NativeList<float3> posiblePositions = new NativeList<float3>(Allocator.Temp);
+
+        Unity.Mathematics.Random prng = new Unity.Mathematics.Random((uint) entityInQueryIndex + 1);
+
+        for (int y = 2; y < mapGeneratorDataJob.mapSize - 2; y++)
         {
-            for (int x = 0; x < mapGeneratorDataJob.mapSize; x++)
+            for (int x = 2; x < mapGeneratorDataJob.mapSize - 2; x++)
             {
                 if (verticesBuffer[mapGeneratorDataJob.mapSize * y + x].value.y > 3f)
                 {
-                    bool plantTree = true;
-
-                    for (int i = 0; i < treesPositions.Length; i++)
-                    {
-                        if (math.distancesq(treesPositions[i], verticesBuffer[mapGeneratorDataJob.mapSize * y + x].value) < 60f)
-                        {
-                            plantTree = false;
-                        }
-                    }
-
-                    if (plantTree) 
-                    {
-                        float3 vertexPosition = verticesBuffer[mapGeneratorDataJob.mapSize * y + x].value;
-                        float3 position = new float3(coordInfo.coord.x + vertexPosition.x, vertexPosition.y - 0.1f, coordInfo.coord.y + vertexPosition.z);
-                        treesPositions.Add(vertexPosition);
-
-                        Entity tree = ecb.Instantiate(entityInQueryIndex, entitiesReferences.treePrefabEntity);
-                        ecb.SetComponent(entityInQueryIndex, tree, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 5f });
-                        ecb.SetComponent(entityInQueryIndex, tree, new MeshLODGroupComponent { LODDistances0 = new float4(300f, 1000f, 1500f, 0f), LocalReferencePoint = new float3(coordInfo.coord.x + vertexPosition.x, vertexPosition.y, coordInfo.coord.y + vertexPosition.z) });
-                    }
+                    posiblePositions.Add(verticesBuffer[mapGeneratorDataJob.mapSize * y + x].value);
                 }
             }
         }
+
+        while(!posiblePositions.IsEmpty)
+        {
+            int random = prng.NextInt(0, posiblePositions.Length);
+            bool plantTree = true;
+
+            for (int i = 0; i < treesPositions.Length; i++)
+            {
+
+                if (math.distancesq(treesPositions[i], posiblePositions[random]) < 30f)
+                {
+                    plantTree = false;
+                }
+
+            }
+
+            if (plantTree)
+            {
+                float3 vertexPosition = posiblePositions[random];
+                float3 position = new float3(coordInfo.coord.x + vertexPosition.x + prng.NextFloat(-0.5f, 0.5f), vertexPosition.y - 0.4f, coordInfo.coord.y + vertexPosition.z + prng.NextFloat(-0.5f, 0.5f));
+                treesPositions.Add(vertexPosition);
+
+                Entity tree = ecb.Instantiate(entityInQueryIndex, entitiesReferences.treePrefabEntity);
+                ecb.SetComponent(entityInQueryIndex, tree, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 10f });
+                ecb.SetComponent(entityInQueryIndex, tree, new MeshLODGroupComponent { LODDistances0 = new float4(300f, 1000f, 1500f, 0f), LocalReferencePoint = new float3(0, 0, 0) });
+            }
+                
+
+            posiblePositions.RemoveAt(random);
+        }
+
 
         ecb.SetComponentEnabled<DecorationsNotCreated>(entityInQueryIndex, entity, false);
     }
