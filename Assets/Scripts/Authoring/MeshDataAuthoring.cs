@@ -17,7 +17,6 @@ public class MeshDataAuthoring : MonoBehaviour
             {
                 onHeightMapGenerated = authoring.onHeightMapGenerated,
                 onMeshGenerated = authoring.onMeshGenerated,
-                myEntity = entity,
             });
             AddBuffer<VerticeFloat3Buffer>(entity);
             AddBuffer<TriangleIntBuffer>(entity);
@@ -31,8 +30,6 @@ public struct MeshData : IComponentData
     public bool onHeightMapGenerated;
     public bool onMeshGenerated;
 
-    public Entity myEntity;
-
     public float2 coord;
     public int size;
 }
@@ -41,6 +38,26 @@ public struct CoordInfo : IComponentData
 {
     public float2 coord;
     public int size;
+}
+
+public struct ChildContainer : IComponentData
+{
+    public Entity child1;
+    public Entity child2;
+    public Entity child3;
+}
+
+public struct InfoToQuadrant : IComponentData
+{
+    public Entity quadrant;
+    public Entity entityTopLeft;
+    public Entity entityTop;
+    public Entity entityTopRight;
+    public Entity entityMiddleLeft;
+    public Entity entityMiddleRight;
+    public Entity entityBottomLeft;
+    public Entity entityBottom;
+    public Entity entityBottomRight;
 }
 
 public struct VericesNotCreated : IComponentData, IEnableableComponent

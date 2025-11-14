@@ -198,7 +198,7 @@ MonoBehaviour:
   octaves: 4
   persistance: 0.3
   lacunarity: 2
-  seed: 1
+  seed: 7
   offset:
     x: 0
     y: 0
@@ -347,7 +347,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6817a7440c06e904e876363463e21cbd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  aux: {fileID: 5512102785038654238, guid: 9699fc0089f50564d8e01f2fbe25f663, type: 3}
+  aux: {fileID: 9131333999287840436, guid: c0c09b003f7bbef4c9e8d8b16facbef1, type: 3}
 --- !u!1 &1445701354
 GameObject:
   m_ObjectHideFlags: 0
@@ -480,7 +480,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   terrainChunkPrefabGameObject: {fileID: 5512102785038654238, guid: 9699fc0089f50564d8e01f2fbe25f663, type: 3}
   treePrefabGameObject: {fileID: 525051458862203007, guid: 41f7a12b7f6e8074abe864e6926188e3, type: 3}
-  material: {fileID: 2100000, guid: c9bb1f98ef0601b47beb44ddd2fdb1c5, type: 2}
+  chunckChildPrefabGameObject: {fileID: 1666127464187874499, guid: baf0b9463f0d1a54cac7f2413245773a, type: 3}
+  material: {fileID: 2100000, guid: f5f83515ea0a6b24e8fdff5fca29d37c, type: 2}
   viewer: {fileID: 1445701358}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

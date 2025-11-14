@@ -37,97 +37,107 @@ partial struct GenerateChunckSystem : ISystem
 
         ecb2.Dispose();
 
+        int countLimit = 0;
+
         foreach ((RefRW<CoordInfo> coordInfo, EnabledRefRO<MeshNotCreated> created, Entity entity) in SystemAPI.Query<RefRW<CoordInfo>, EnabledRefRO<MeshNotCreated>>().WithEntityAccess())
         {
-
-            DynamicBuffer<VerticeFloat3Buffer> verticesBuffer = SystemAPI.GetBuffer<VerticeFloat3Buffer>(entity);
-            DynamicBuffer<UvFloat2Buffer> uvsBuffer = SystemAPI.GetBuffer<UvFloat2Buffer>(entity);
-            DynamicBuffer<TriangleIntBuffer> trianglesBuffer = SystemAPI.GetBuffer<TriangleIntBuffer>(entity);
-            DynamicBuffer<NormalFloat3Buffer> normalsBuffer = SystemAPI.GetBuffer<NormalFloat3Buffer>(entity);
-
-            NativeArray<float3> verticesNativeArray = new NativeArray<float3>(verticesBuffer.Length, Allocator.Temp);
-            NativeArray<int3> trianglesNativeArray = new NativeArray<int3>(trianglesBuffer.Length, Allocator.Temp);
-
-            Vector3[] vertices = new Vector3[verticesBuffer.Length];
-            Vector2[] uvs = new Vector2[uvsBuffer.Length];
-            Vector3[] normals = new Vector3[normalsBuffer.Length];
-            int[] triangles = new int[trianglesBuffer.Length];
-
-            //Debug.Log("Tengo tantos vertices " + vertices.Length);
-
-            Mesh mesh = new Mesh();
-
-            float3 min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
-            float3 max = new float3(float.MinValue, float.MinValue, float.MinValue);
-
-            for (int i = 0; i < verticesBuffer.Length; i++)
+            if (countLimit < 5)
             {
-                vertices[i] = verticesBuffer[i].value;
-                uvs[i] = uvsBuffer[i].value;
+                DynamicBuffer<VerticeFloat3Buffer> verticesBuffer = SystemAPI.GetBuffer<VerticeFloat3Buffer>(entity);
+                DynamicBuffer<UvFloat2Buffer> uvsBuffer = SystemAPI.GetBuffer<UvFloat2Buffer>(entity);
+                DynamicBuffer<TriangleIntBuffer> trianglesBuffer = SystemAPI.GetBuffer<TriangleIntBuffer>(entity);
+                DynamicBuffer<NormalFloat3Buffer> normalsBuffer = SystemAPI.GetBuffer<NormalFloat3Buffer>(entity);
 
-                normals[i] = normalsBuffer[i].value;
+                NativeArray<float3> verticesNativeArray = new NativeArray<float3>(verticesBuffer.Length, Allocator.Temp);
+                NativeArray<int3> trianglesNativeArray = new NativeArray<int3>(trianglesBuffer.Length, Allocator.Temp);
 
-                verticesNativeArray[i] = verticesBuffer[i].value;
+                Vector3[] vertices = new Vector3[verticesBuffer.Length];
+                Vector2[] uvs = new Vector2[uvsBuffer.Length];
+                Vector3[] normals = new Vector3[normalsBuffer.Length];
+                int[] triangles = new int[trianglesBuffer.Length];
 
-                min = math.min(verticesBuffer[i].value, min);
-                max = math.max(verticesBuffer[i].value, max);
-            }
+                //Debug.Log("Tengo tantos vertices " + vertices.Length);
 
-            int count = 0;
-            int triangleCount = 0;
+                Mesh mesh = new Mesh();
 
-            for (int i = 0; i < trianglesBuffer.Length; i++)
-            {
-                triangles[i] = trianglesBuffer[i].value;
+                float3 min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
+                float3 max = new float3(float.MinValue, float.MinValue, float.MinValue);
 
-                if ((count + 1) % 3 == 0)
+                for (int i = 0; i < verticesBuffer.Length; i++)
                 {
-                    trianglesNativeArray[triangleCount] = new int3(trianglesBuffer[i - 2].value, trianglesBuffer[i - 1].value, trianglesBuffer[i].value);
+                    vertices[i] = verticesBuffer[i].value;
+                    uvs[i] = uvsBuffer[i].value;
 
-                    triangleCount++;
+                    normals[i] = normalsBuffer[i].value;
+
+                    verticesNativeArray[i] = verticesBuffer[i].value;
+
+                    min = math.min(verticesBuffer[i].value, min);
+                    max = math.max(verticesBuffer[i].value, max);
                 }
 
-                count++;
-            }
+                int count = 0;
+                int triangleCount = 0;
 
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            mesh.uv = uvs;
-            mesh.normals = normals;
+                for (int i = 0; i < trianglesBuffer.Length; i++)
+                {
+                    triangles[i] = trianglesBuffer[i].value;
 
-            RenderMeshArray meshArray = new RenderMeshArray(
-                new UnityEngine.Material[] {
+                    if ((count + 1) % 3 == 0)
+                    {
+                        trianglesNativeArray[triangleCount] = new int3(trianglesBuffer[i - 2].value, trianglesBuffer[i - 1].value, trianglesBuffer[i].value);
+
+                        triangleCount++;
+                    }
+
+                    count++;
+                }
+
+                mesh.vertices = vertices;
+                mesh.triangles = triangles;
+                mesh.uv = uvs;
+                mesh.normals = normals;
+
+                RenderMeshArray meshArray = new RenderMeshArray(
+                    new UnityEngine.Material[] {
                 entitiesReferences.material
-                }, new Mesh[] {
+                    }, new Mesh[] {
                 mesh,
-                }, new MaterialMeshIndex[] {
+                    }, new MaterialMeshIndex[] {
                 new MaterialMeshIndex { MaterialIndex = 0, MeshIndex = 0 }
+                    }
+                    );
+
+                float2 coord = coordInfo.ValueRO.coord;
+                int size = coordInfo.ValueRO.size;
+                //Entity entity = meshData.ValueRW.myEntity;
+
+                float scale = 10f;
+
+                float3 position = new float3(coord.x, 0f, coord.y);
+
+                ecb.SetComponent(entity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
+                ecb.SetSharedComponentManaged<RenderMeshArray>(entity, meshArray);
+                ecb.SetComponent(entity, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
+                ecb.SetComponent(entity, new RenderBounds { Value = new AABB { Center = (max + min) * 0.5f, Extents = (max - min) * 0.5f } });
+
+                ecb.SetComponentEnabled<MeshNotCreated>(entity, false);
+
+                if (vertices.Length == 81)
+                {
+                    ecb.SetComponentEnabled<DecorationsNotCreated>(entity, true);
+
+
+                    ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
+
                 }
-                );
-
-            float2 coord = coordInfo.ValueRO.coord;
-            int size = coordInfo.ValueRO.size;
-            //Entity entity = meshData.ValueRW.myEntity;
-
-            float scale = 10f;
-
-            float3 position = new float3(coord.x, 0f, coord.y);
-
-            ecb.AddComponent(entity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
-            ecb.SetSharedComponentManaged<RenderMeshArray>(entity, meshArray);
-            ecb.AddComponent(entity, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
-            ecb.AddComponent(entity, new RenderBounds { Value = new AABB { Center = (max + min) * 0.5f, Extents = (max - min) * 0.5f } });
-
-            ecb.SetComponentEnabled<MeshNotCreated>(entity, false);
-
-            if (vertices.Length == 81)
-            {
-                ecb.AddComponent(entity, new DecorationsNotCreated());
-
-
-                ecb.AddComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
-
             }
+            else if(countLimit >= 5)
+            {
+                break;
+            }
+
+            countLimit++;
 
             //meshData.ValueRW.onMeshGenerated = true;
         }
@@ -161,7 +171,7 @@ public partial struct GenerateDataJob : IJobEntity
 
     public EntityCommandBuffer.ParallelWriter ecb;
 
-    public void Execute([EntityIndexInQuery] int entityInQueryIndex, ref MeshData meshData, ref DynamicBuffer<VerticeFloat3Buffer> verticesBuffer, ref DynamicBuffer<UvFloat2Buffer> uvsBuffer, ref DynamicBuffer<TriangleIntBuffer> trianglesBuffer, EnabledRefRO<VericesNotCreated> created)
+    public void Execute([EntityIndexInQuery] int entityInQueryIndex, ref MeshData meshData, ref ChildContainer childContainer, EnabledRefRO<VericesNotCreated> created, Entity entity)
     {
 
         NativeArray<float> noiseMap = new NativeArray<float>((mapGeneratorDataJob.mapSize + 8) * (mapGeneratorDataJob.mapSize + 8), Allocator.Temp);
@@ -240,18 +250,18 @@ public partial struct GenerateDataJob : IJobEntity
 
         //Create the mesh data with the height map created
 
-        Entity entity1 = ecb.Instantiate(entityInQueryIndex, entitiesReferences.terrainChunkPrefabEntity);
-        Entity entity2 = ecb.Instantiate(entityInQueryIndex, entitiesReferences.terrainChunkPrefabEntity);
-        Entity entity3 = ecb.Instantiate(entityInQueryIndex, entitiesReferences.terrainChunkPrefabEntity);
+        Entity entity1 = childContainer.child1;
+        Entity entity2 = childContainer.child2;
+        Entity entity3 = childContainer.child3;
 
-        ecb.AddComponent(entityInQueryIndex, entity1, new Parent { Value = meshData.myEntity });
-        ecb.AddComponent(entityInQueryIndex, entity2, new Parent { Value = meshData.myEntity });
-        ecb.AddComponent(entityInQueryIndex, entity3, new Parent { Value = meshData.myEntity });
+        //ecb.AddComponent(entityInQueryIndex, entity1, new Parent { Value = entity });
+        //ecb.AddComponent(entityInQueryIndex, entity2, new Parent { Value = entity });
+        //ecb.AddComponent(entityInQueryIndex, entity3, new Parent { Value = entity });
 
-        ecb.AddComponent(entityInQueryIndex, meshData.myEntity, new MeshLODGroupComponent { LODDistances0 = new float4(300f, 1000f, 1500f, 0f), LocalReferencePoint = new float3(meshData.coord.x * 10, 0f, meshData.coord.y * 10) });
-        ecb.AddComponent(entityInQueryIndex, entity1, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 1 });
-        ecb.AddComponent(entityInQueryIndex, entity2, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 2 });
-        ecb.AddComponent(entityInQueryIndex, entity3, new MeshLODComponent { Group = meshData.myEntity, ParentGroup = meshData.myEntity, LODMask = 4 });
+        ecb.SetComponent(entityInQueryIndex, entity, new MeshLODGroupComponent { LODDistances0 = new float4(600f, 1300f, 2500f, 0f), LocalReferencePoint = new float3(meshData.coord.x * 10, 0f, meshData.coord.y * 10) });
+        ecb.SetComponent(entityInQueryIndex, entity1, new MeshLODComponent { Group = entity, ParentGroup = entity, LODMask = 1 });
+        ecb.SetComponent(entityInQueryIndex, entity2, new MeshLODComponent { Group = entity, ParentGroup = entity, LODMask = 2 });
+        ecb.SetComponent(entityInQueryIndex, entity3, new MeshLODComponent { Group = entity, ParentGroup = entity, LODMask = 4 });
 
         float topLeftX = (mapGeneratorDataJob.mapSize - 1) / -2f;
         float topLeftZ = (mapGeneratorDataJob.mapSize - 1) / 2f;
@@ -407,19 +417,19 @@ public partial struct GenerateDataJob : IJobEntity
                 normalsArray[j] = new NormalFloat3Buffer { value = math.normalize(normalsArray[j].value) };
             }
 
-            ecb.AddBuffer<VerticeFloat3Buffer>(entityInQueryIndex, currentKid).CopyFrom(verticesArray);
-            ecb.AddBuffer<UvFloat2Buffer>(entityInQueryIndex, currentKid).CopyFrom(uvsArray);
-            ecb.AddBuffer<TriangleIntBuffer>(entityInQueryIndex, currentKid).CopyFrom(trianglesArray);
-            ecb.AddBuffer<NormalFloat3Buffer>(entityInQueryIndex, currentKid).CopyFrom(normalsArray);
+            ecb.SetBuffer<VerticeFloat3Buffer>(entityInQueryIndex, currentKid).CopyFrom(verticesArray);
+            ecb.SetBuffer<UvFloat2Buffer>(entityInQueryIndex, currentKid).CopyFrom(uvsArray);
+            ecb.SetBuffer<TriangleIntBuffer>(entityInQueryIndex, currentKid).CopyFrom(trianglesArray);
+            ecb.SetBuffer<NormalFloat3Buffer>(entityInQueryIndex, currentKid).CopyFrom(normalsArray);
 
-            ecb.AddComponent(entityInQueryIndex, currentKid, new MeshNotCreated());
+            ecb.SetComponentEnabled<MeshNotCreated>(entityInQueryIndex, currentKid, true);
 
-            ecb.AddComponent(entityInQueryIndex, currentKid, new CoordInfo { coord = meshData.coord, size = meshData.size });
+            ecb.SetComponent(entityInQueryIndex, currentKid, new CoordInfo { coord = meshData.coord, size = meshData.size });
 
             currentLod *= 2;
         }
 
-        ecb.SetComponentEnabled<VericesNotCreated>(entityInQueryIndex, meshData.myEntity, false);
+        ecb.SetComponentEnabled<VericesNotCreated>(entityInQueryIndex, entity, false);
         
     }
 }
@@ -458,7 +468,7 @@ public partial struct GenerateDecorationsJob : IJobEntity
             for (int i = 0; i < treesPositions.Length; i++)
             {
 
-                if (math.distancesq(treesPositions[i], posiblePositions[random]) < 30f)
+                if (math.distancesq(treesPositions[i], posiblePositions[random]) < 20f)
                 {
                     plantTree = false;
                 }
@@ -473,7 +483,7 @@ public partial struct GenerateDecorationsJob : IJobEntity
 
                 Entity tree = ecb.Instantiate(entityInQueryIndex, entitiesReferences.treePrefabEntity);
                 ecb.SetComponent(entityInQueryIndex, tree, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 10f });
-                ecb.SetComponent(entityInQueryIndex, tree, new MeshLODGroupComponent { LODDistances0 = new float4(300f, 1000f, 1500f, 0f), LocalReferencePoint = new float3(0, 0, 0) });
+                ecb.SetComponent(entityInQueryIndex, tree, new MeshLODGroupComponent { LODDistances0 = new float4(600f, 1300f, 2500f, 0f), LocalReferencePoint = new float3(0, 0, 0) });
             }
                 
 

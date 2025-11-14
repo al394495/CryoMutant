@@ -6,6 +6,7 @@ public class EntitiesReferenceAuthoring : MonoBehaviour
 {
     public GameObject terrainChunkPrefabGameObject;
     public GameObject treePrefabGameObject;
+    public GameObject chunckChildPrefabGameObject;
     public Material material;
     public Transform viewer;
 
@@ -18,6 +19,7 @@ public class EntitiesReferenceAuthoring : MonoBehaviour
             {
                 terrainChunkPrefabEntity = GetEntity(authoring.terrainChunkPrefabGameObject, TransformUsageFlags.Dynamic),
                 treePrefabEntity = GetEntity(authoring.treePrefabGameObject, TransformUsageFlags.Dynamic),
+                chunckChildEntity = GetEntity(authoring.chunckChildPrefabGameObject, TransformUsageFlags.Dynamic),
                 material = authoring.material,
                 viewer = authoring.viewer,
                 example = entity
@@ -31,6 +33,7 @@ public struct EntitiesReferences : IComponentData
 {
     public Entity terrainChunkPrefabEntity;
     public Entity treePrefabEntity;
+    public Entity chunckChildEntity;
     public Entity example;
     public UnityObjectRef<Material> material;
     public UnityObjectRef<Transform> viewer;
