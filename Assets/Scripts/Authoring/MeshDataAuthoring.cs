@@ -60,7 +60,7 @@ public struct InfoToQuadrant : IComponentData
     public Entity entityBottomRight;
 }
 
-public struct VericesNotCreated : IComponentData, IEnableableComponent
+public struct VerticesNotCreated : IComponentData, IEnableableComponent
 {
 
 }
@@ -71,6 +71,11 @@ public struct MeshNotCreated : IComponentData, IEnableableComponent
 }
 
 public struct DecorationsNotCreated : IComponentData, IEnableableComponent
+{
+
+}
+
+public struct EnemiesNotCreated : IComponentData, IEnableableComponent
 {
 
 }
@@ -97,4 +102,11 @@ public struct UvFloat2Buffer : IBufferElementData
 public struct NormalFloat3Buffer : IBufferElementData
 {
     public float3 value;
+}
+
+[InternalBufferCapacity(100)]
+public struct ChunckEntityBuffer : IBufferElementData
+{
+    public Entity chunckEntity;
+    public float average;
 }

@@ -63,6 +63,8 @@ partial struct GenerateChunckSystem : ISystem
                 float3 min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
                 float3 max = new float3(float.MinValue, float.MinValue, float.MinValue);
 
+                float heightSum = 0;
+
                 for (int i = 0; i < verticesBuffer.Length; i++)
                 {
                     vertices[i] = verticesBuffer[i].value;
@@ -74,6 +76,12 @@ partial struct GenerateChunckSystem : ISystem
 
                     min = math.min(verticesBuffer[i].value, min);
                     max = math.max(verticesBuffer[i].value, max);
+
+                    if (verticesBuffer.Length == 25)
+                    {
+                        heightSum += verticesBuffer[i].value.y;
+                    }
+
                 }
 
                 int count = 0;
@@ -131,6 +139,14 @@ partial struct GenerateChunckSystem : ISystem
                     ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
 
                 }
+
+                if (vertices.Length == 25)
+                {
+                    Entity parent = SystemAPI.GetComponent<Parent>(entity).Value;
+                    Entity quadrant = SystemAPI.GetComponent<InfoToQuadrant>(parent).quadrant;
+
+                    ecb.AppendToBuffer<ChunckEntityBuffer>(quadrant, new ChunckEntityBuffer { average = (float)(heightSum / 25), chunckEntity = parent });
+                }
             }
             else if(countLimit >= 5)
             {
@@ -160,6 +176,27 @@ partial struct GenerateChunckSystem : ISystem
 
         ecb3.Dispose();
 
+        ComponentLookup<ChildContainer> childContainerLookUp = SystemAPI.GetComponentLookup<ChildContainer>();
+        ComponentLookup<CoordInfo> coordInfoLookUp = SystemAPI.GetComponentLookup<CoordInfo>();
+        BufferLookup<VerticeFloat3Buffer> verticesLookUp = SystemAPI.GetBufferLookup<VerticeFloat3Buffer>();
+
+        EntityCommandBuffer ecb4 = new EntityCommandBuffer(Allocator.TempJob);
+
+        GenerateEnemiesJob generateEnemiesJob = new GenerateEnemiesJob
+        {
+            ecb = ecb4.AsParallelWriter(),
+            entitiesReferences = entitiesReferences,
+            childContainerLookUp = childContainerLookUp,
+            coordInfoLookUp = coordInfoLookUp,
+            verticesLookUp = verticesLookUp,
+        };
+
+        generateEnemiesJob.ScheduleParallel(state.Dependency).Complete();
+
+        ecb4.Playback(state.EntityManager);
+
+        ecb4.Dispose();
+
     }
 }
 
@@ -171,7 +208,7 @@ public partial struct GenerateDataJob : IJobEntity
 
     public EntityCommandBuffer.ParallelWriter ecb;
 
-    public void Execute([EntityIndexInQuery] int entityInQueryIndex, ref MeshData meshData, ref ChildContainer childContainer, EnabledRefRO<VericesNotCreated> created, Entity entity)
+    public void Execute([EntityIndexInQuery] int entityInQueryIndex, ref MeshData meshData, ref ChildContainer childContainer, EnabledRefRO<VerticesNotCreated> created, Entity entity)
     {
 
         NativeArray<float> noiseMap = new NativeArray<float>((mapGeneratorDataJob.mapSize + 8) * (mapGeneratorDataJob.mapSize + 8), Allocator.Temp);
@@ -429,7 +466,7 @@ public partial struct GenerateDataJob : IJobEntity
             currentLod *= 2;
         }
 
-        ecb.SetComponentEnabled<VericesNotCreated>(entityInQueryIndex, entity, false);
+        ecb.SetComponentEnabled<VerticesNotCreated>(entityInQueryIndex, entity, false);
         
     }
 }
@@ -494,4 +531,73 @@ public partial struct GenerateDecorationsJob : IJobEntity
         ecb.SetComponentEnabled<DecorationsNotCreated>(entityInQueryIndex, entity, false);
     }
 
+}
+
+[BurstCompile]
+public partial struct GenerateEnemiesJob : IJobEntity
+{
+    public EntityCommandBuffer.ParallelWriter ecb;
+    public EntitiesReferences entitiesReferences;
+    [ReadOnly] public ComponentLookup<ChildContainer> childContainerLookUp;
+    [ReadOnly] public ComponentLookup<CoordInfo> coordInfoLookUp;
+    [ReadOnly] public BufferLookup<VerticeFloat3Buffer> verticesLookUp;
+
+    public void Execute([EntityIndexInQuery] int entityInQueryIndex, ref DynamicBuffer<ChunckEntityBuffer> chunckEntityBuffer, EnabledRefRO<EnemiesNotCreated> enemeiesNotCreated, Entity entity)
+    {
+        NativeList<ChunckEntityBuffer> posibleLocations = new NativeList<ChunckEntityBuffer>(Allocator.Temp);
+
+        Unity.Mathematics.Random prng = new Unity.Mathematics.Random((uint)entityInQueryIndex + 1);
+
+        if (chunckEntityBuffer.Length >= 90)
+        {
+            for (int i = 0; i < chunckEntityBuffer.Length; i++)
+            {
+                if (chunckEntityBuffer[i].average < 3)
+                {
+                    posibleLocations.Add(chunckEntityBuffer[i]);
+                }
+            }
+
+            for (int i = 0; i < 7; i++) 
+            {
+                if (posibleLocations.Length > 0)
+                {
+                    int random = prng.NextInt(0, posibleLocations.Length);
+                    Entity spawnEntity = posibleLocations[random].chunckEntity;
+
+                    Entity verticesEntity = childContainerLookUp[spawnEntity].child2;
+                    DynamicBuffer<VerticeFloat3Buffer> vertices = verticesLookUp[verticesEntity];
+
+                    NativeList<VerticeFloat3Buffer> posibleVertices = new NativeList<VerticeFloat3Buffer>(Allocator.Temp);
+
+                    for (int j = 0; j < vertices.Length; j++)
+                    {
+                        if (vertices[j].value.y < 3f)
+                        {
+                            posibleVertices.Add(vertices[j]);
+                        }
+                    }
+
+                    for (int j = 0; j < 3; j++)
+                    {
+                        if (posibleVertices.Length > 0)
+                        {
+                            int randomVertice = prng.NextInt(0, posibleVertices.Length);
+                            float2 coord = coordInfoLookUp[verticesEntity].coord;
+                            Entity enemy = ecb.Instantiate(entityInQueryIndex, entitiesReferences.enemy);
+                            float3 vertexPosition = posibleVertices[randomVertice].value;
+                            float3 position = new float3(coord.x + vertexPosition.x, vertexPosition.y, coord.y + vertexPosition.z);
+                            ecb.SetComponent(entityInQueryIndex, enemy, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 10f });
+                            posibleVertices.RemoveAt(randomVertice);
+                        }
+                    }
+
+                    posibleLocations.RemoveAt(random);
+                }
+            }
+
+
+            ecb.SetComponentEnabled<EnemiesNotCreated>(entityInQueryIndex, entity, false);
+        }
+    }
 }

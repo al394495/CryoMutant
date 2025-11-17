@@ -198,7 +198,7 @@ MonoBehaviour:
   octaves: 4
   persistance: 0.3
   lacunarity: 2
-  seed: 7
+  seed: 5
   offset:
     x: 0
     y: 0
@@ -348,6 +348,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aux: {fileID: 9131333999287840436, guid: c0c09b003f7bbef4c9e8d8b16facbef1, type: 3}
+  quadrant: {fileID: 5512102785038654238, guid: 9699fc0089f50564d8e01f2fbe25f663, type: 3}
 --- !u!1 &1445701354
 GameObject:
   m_ObjectHideFlags: 0
@@ -481,6 +482,7 @@ MonoBehaviour:
   terrainChunkPrefabGameObject: {fileID: 5512102785038654238, guid: 9699fc0089f50564d8e01f2fbe25f663, type: 3}
   treePrefabGameObject: {fileID: 525051458862203007, guid: 41f7a12b7f6e8074abe864e6926188e3, type: 3}
   chunckChildPrefabGameObject: {fileID: 1666127464187874499, guid: baf0b9463f0d1a54cac7f2413245773a, type: 3}
+  enemy: {fileID: 3964402786563445902, guid: d72647d5457d7e34d9ff13d0f71d5c74, type: 3}
   material: {fileID: 2100000, guid: f5f83515ea0a6b24e8fdff5fca29d37c, type: 2}
   viewer: {fileID: 1445701358}
 --- !u!1660057539 &9223372036854775807

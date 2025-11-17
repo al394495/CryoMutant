@@ -4,6 +4,7 @@ using UnityEngine;
 public class AuxAuthoring : MonoBehaviour
 {
     public GameObject aux;
+    public GameObject quadrant;
 
     public class Baker : Baker<AuxAuthoring>
     {
@@ -12,7 +13,8 @@ public class AuxAuthoring : MonoBehaviour
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
             AddComponent(entity, new Aux
             {
-                auxEntity = GetEntity(authoring.aux, TransformUsageFlags.Dynamic)
+                auxEntity = GetEntity(authoring.aux, TransformUsageFlags.Dynamic),
+                quadrantEntity = GetEntity(authoring.quadrant, TransformUsageFlags.Dynamic)
             });
         }
     }
@@ -23,4 +25,5 @@ public class AuxAuthoring : MonoBehaviour
 public struct Aux : IComponentData
 {
     public Entity auxEntity;
+    public Entity quadrantEntity;
 }
