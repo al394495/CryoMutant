@@ -15,8 +15,6 @@ public class ChunckChildAuthoring : MonoBehaviour
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
             Entity chunckParent = GetEntity(authoring.chunckParent, TransformUsageFlags.Dynamic);
             AddComponent(entity, new LocalTransform());
-            //AddComponent(entity, MaterialMeshInfo.From);
-            //AddComponent(entity, new RenderBounds());
             AddComponent(entity, new Parent { Value = chunckParent});
             AddComponent(entity, new MeshLODComponent { ParentGroup = chunckParent, Group = chunckParent});
             AddComponent(entity, new PhysicsCollider());
@@ -25,7 +23,6 @@ public class ChunckChildAuthoring : MonoBehaviour
             AddBuffer<UvFloat2Buffer>(entity);
             AddBuffer<TriangleIntBuffer>(entity);
             AddBuffer<NormalFloat3Buffer>(entity);
-            //AddComponent(entity, new VericesNotCreated());
             AddComponent(entity, new MeshNotCreated());
             AddComponent(entity, new DecorationsNotCreated());
             SetComponentEnabled<MeshNotCreated>(entity, false);

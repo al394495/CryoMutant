@@ -124,6 +124,8 @@ partial struct GenerateChunckSystem : ISystem
 
                 float3 position = new float3(coord.x, 0f, coord.y);
 
+                if (vertices.Length == 81) ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
+
                 ecb.SetComponent(entity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
                 ecb.SetSharedComponentManaged<RenderMeshArray>(entity, meshArray);
                 ecb.SetComponent(entity, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
@@ -136,7 +138,7 @@ partial struct GenerateChunckSystem : ISystem
                     ecb.SetComponentEnabled<DecorationsNotCreated>(entity, true);
 
 
-                    ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
+                    //ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
 
                 }
 
@@ -168,6 +170,7 @@ partial struct GenerateChunckSystem : ISystem
             mapGeneratorDataJob = mapGeneratorData,
             entitiesReferences = entitiesReferences,
             ecb = ecb3.AsParallelWriter(),
+            nextSeed = (uint)(SystemAPI.Time.ElapsedTime * 100 + 1)
         };
 
         generateDecorationsJob.ScheduleParallel(state.Dependency).Complete();
@@ -186,6 +189,7 @@ partial struct GenerateChunckSystem : ISystem
         {
             ecb = ecb4.AsParallelWriter(),
             entitiesReferences = entitiesReferences,
+            nextSeed = (uint)(SystemAPI.Time.ElapsedTime * 100 + 1),
             childContainerLookUp = childContainerLookUp,
             coordInfoLookUp = coordInfoLookUp,
             verticesLookUp = verticesLookUp,
@@ -290,10 +294,6 @@ public partial struct GenerateDataJob : IJobEntity
         Entity entity1 = childContainer.child1;
         Entity entity2 = childContainer.child2;
         Entity entity3 = childContainer.child3;
-
-        //ecb.AddComponent(entityInQueryIndex, entity1, new Parent { Value = entity });
-        //ecb.AddComponent(entityInQueryIndex, entity2, new Parent { Value = entity });
-        //ecb.AddComponent(entityInQueryIndex, entity3, new Parent { Value = entity });
 
         ecb.SetComponent(entityInQueryIndex, entity, new MeshLODGroupComponent { LODDistances0 = new float4(600f, 1300f, 2500f, 0f), LocalReferencePoint = new float3(meshData.coord.x * 10, 0f, meshData.coord.y * 10) });
         ecb.SetComponent(entityInQueryIndex, entity1, new MeshLODComponent { Group = entity, ParentGroup = entity, LODMask = 1 });
@@ -477,6 +477,7 @@ public partial struct GenerateDecorationsJob : IJobEntity
     public MapGeneratorData mapGeneratorDataJob;
     public EntitiesReferences entitiesReferences;
     public EntityCommandBuffer.ParallelWriter ecb;
+    public uint nextSeed;
 
     public void Execute([EntityIndexInQuery] int entityInQueryIndex, ref DynamicBuffer<VerticeFloat3Buffer> verticesBuffer, ref CoordInfo coordInfo, EnabledRefRO<DecorationsNotCreated> created, Entity entity)
     {
@@ -484,7 +485,7 @@ public partial struct GenerateDecorationsJob : IJobEntity
 
         NativeList<float3> posiblePositions = new NativeList<float3>(Allocator.Temp);
 
-        Unity.Mathematics.Random prng = new Unity.Mathematics.Random((uint) entityInQueryIndex + 1);
+        Unity.Mathematics.Random prng = new Unity.Mathematics.Random((uint) (nextSeed + entityInQueryIndex * 100));
 
         for (int y = 2; y < mapGeneratorDataJob.mapSize - 2; y++)
         {
@@ -514,11 +515,19 @@ public partial struct GenerateDecorationsJob : IJobEntity
 
             if (plantTree)
             {
+                NativeArray<Entity> posibleTrees = new NativeArray<Entity>(3, Allocator.Temp);
+                posibleTrees[0] = entitiesReferences.treePrefabEntity;
+                posibleTrees[1] = entitiesReferences.tree1PrefabEntity;
+                posibleTrees[2] = entitiesReferences.tree2PrefabEntity;
+
+                int randomRange = prng.NextInt(0, 3);
+                Entity treePicked = posibleTrees[randomRange];
+
                 float3 vertexPosition = posiblePositions[random];
                 float3 position = new float3(coordInfo.coord.x + vertexPosition.x + prng.NextFloat(-0.5f, 0.5f), vertexPosition.y - 0.4f, coordInfo.coord.y + vertexPosition.z + prng.NextFloat(-0.5f, 0.5f));
                 treesPositions.Add(vertexPosition);
 
-                Entity tree = ecb.Instantiate(entityInQueryIndex, entitiesReferences.treePrefabEntity);
+                Entity tree = ecb.Instantiate(entityInQueryIndex, treePicked);
                 ecb.SetComponent(entityInQueryIndex, tree, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 10f });
                 ecb.SetComponent(entityInQueryIndex, tree, new MeshLODGroupComponent { LODDistances0 = new float4(600f, 1300f, 2500f, 0f), LocalReferencePoint = new float3(0, 0, 0) });
             }
@@ -538,6 +547,7 @@ public partial struct GenerateEnemiesJob : IJobEntity
 {
     public EntityCommandBuffer.ParallelWriter ecb;
     public EntitiesReferences entitiesReferences;
+    public uint nextSeed;
     [ReadOnly] public ComponentLookup<ChildContainer> childContainerLookUp;
     [ReadOnly] public ComponentLookup<CoordInfo> coordInfoLookUp;
     [ReadOnly] public BufferLookup<VerticeFloat3Buffer> verticesLookUp;
@@ -546,7 +556,7 @@ public partial struct GenerateEnemiesJob : IJobEntity
     {
         NativeList<ChunckEntityBuffer> posibleLocations = new NativeList<ChunckEntityBuffer>(Allocator.Temp);
 
-        Unity.Mathematics.Random prng = new Unity.Mathematics.Random((uint)entityInQueryIndex + 1);
+        Unity.Mathematics.Random prng = new Unity.Mathematics.Random((uint)(nextSeed + entityInQueryIndex * 100));
 
         if (chunckEntityBuffer.Length >= 90)
         {
@@ -584,10 +594,10 @@ public partial struct GenerateEnemiesJob : IJobEntity
                         {
                             int randomVertice = prng.NextInt(0, posibleVertices.Length);
                             float2 coord = coordInfoLookUp[verticesEntity].coord;
-                            Entity enemy = ecb.Instantiate(entityInQueryIndex, entitiesReferences.enemy);
+                            Entity enemy = ecb.Instantiate(entityInQueryIndex, entitiesReferences.enemyRat);
                             float3 vertexPosition = posibleVertices[randomVertice].value;
                             float3 position = new float3(coord.x + vertexPosition.x, vertexPosition.y, coord.y + vertexPosition.z);
-                            ecb.SetComponent(entityInQueryIndex, enemy, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 10f });
+                            ecb.SetComponent(entityInQueryIndex, enemy, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 6f });
                             posibleVertices.RemoveAt(randomVertice);
                         }
                     }
