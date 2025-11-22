@@ -1,20 +1,18 @@
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Physics;
+using Unity.Physics.Systems;
 using Unity.Transforms;
 
-[UpdateBefore(typeof(TransformSystemGroup))]
+[UpdateInGroup(typeof(PhysicsSystemGroup), OrderLast = true)]
 partial struct PlayerMoveSystem : ISystem
 {
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        float deltaTime = SystemAPI.Time.DeltaTime;
-        new PlayerMoveJob
-        {
-            DeltaTime = deltaTime
-        }.Schedule();
+        new PlayerMoveJob().Schedule();
     }
 
 }
@@ -22,11 +20,13 @@ partial struct PlayerMoveSystem : ISystem
 [BurstCompile]
 public partial struct PlayerMoveJob : IJobEntity
 {
-    public float DeltaTime;
 
-    private void Execute(ref LocalTransform transform, in PlayerMoveInput moveInput, PlayerMoveSpeed moveSpeed)
+    private void Execute(ref LocalTransform transform, in PlayerMoveInput moveInput, in PlayerMoveSpeed moveSpeed, ref PhysicsVelocity physicsVelocity, ref PhysicsMass physicsMass)
     {
-        transform.Position.xz += moveInput.moveInput * moveSpeed.moveSpeed * DeltaTime;
+        float velocityY = physicsVelocity.Linear.y;
+        physicsVelocity.Linear = new float3(moveInput.moveInput.x * moveSpeed.moveSpeed, -10f, moveInput.moveInput.y * moveSpeed.moveSpeed);
+        physicsVelocity.Angular = float3.zero;
+        physicsMass.InverseInertia = float3.zero;
 
         if (math.lengthsq(moveInput.moveInput) > float.Epsilon)
         {

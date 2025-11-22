@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 6617928502555461354}
   - component: {fileID: 5264988286724136430}
   - component: {fileID: 5165369035029605068}
-  m_Layer: 0
+  - component: {fileID: 5193569612395309046}
+  m_Layer: 7
   m_Name: Mouse_Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -86,3 +87,15 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5193569612395309046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8280856079670979508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b450a9adbbe70814280402eaaab25405, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

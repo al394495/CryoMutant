@@ -7,7 +7,8 @@ using UnityEngine.UIElements;
 
 public class PlayerAuthoring : MonoBehaviour
 {
-    public GameObject PlayerGameObjectPrefab;
+    public GameObject playerGameObjectPrefab;
+    public float moveSpeed;
     public class Baker : Baker<PlayerAuthoring>
     {
         public override void Bake(PlayerAuthoring authoring)
@@ -15,8 +16,9 @@ public class PlayerAuthoring : MonoBehaviour
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
             AddComponent(entity, new PlayerTag());
             AddComponent(entity, new PlayerMoveInput());
-            AddComponent(entity, new PlayerMoveSpeed { moveSpeed = 5f });
-            AddComponent(entity, new PlayerGameObjectPrefab { prefab = authoring.PlayerGameObjectPrefab });
+            AddComponent(entity, new PlayerMoveSpeed { moveSpeed = authoring.moveSpeed });
+            AddComponent(entity, new PlayerGameObjectPrefab { prefab = authoring.playerGameObjectPrefab });
+            AddComponent(entity, new PhysicsGravityFactor { Value = 5f });
         }
     }
 }

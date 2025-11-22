@@ -11,22 +11,25 @@ partial struct EndlessTerrainSystem : ISystem
     NativeParallelHashMap<float2, Entity> diccionary;
     NativeParallelHashMap<float2, Entity> quadrantDiccionary;
 
-    Help help;
     int chunckSize;
     int chunckVisibleInViewDistance;
     float maxViewDst;
     float3 previousPosition;
 
+    Entity player;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<PlayerTag>();
+
         diccionary.Dispose();
         diccionary = new NativeParallelHashMap<float2, Entity>(10000, Allocator.Persistent);
         quadrantDiccionary = new NativeParallelHashMap<float2, Entity>(10000, Allocator.Persistent);
  
         chunckSize = 8;
 
-        maxViewDst = 240;
+        maxViewDst = 160;
 
         chunckVisibleInViewDistance = (int)math.round(maxViewDst / chunckSize);
 
@@ -35,16 +38,13 @@ partial struct EndlessTerrainSystem : ISystem
 
     }
 
-
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
+        player = SystemAPI.GetSingletonEntity<PlayerTag>();
 
-        help = SystemAPI.GetSingleton<Help>();
         Aux aux = SystemAPI.GetSingleton<Aux>();
-        LocalTransform viewerPosition = SystemAPI.GetComponent<LocalTransform>(help.help);
-        ecb.SetComponent(help.help, new LocalTransform { Position = new float3(viewerPosition.Position.x + 0.01f, 0 , viewerPosition.Position.z + 0.01f), Rotation = viewerPosition.Rotation, Scale = viewerPosition.Scale });
+        LocalTransform viewerPosition = SystemAPI.GetComponent<LocalTransform>(player);
 
         if (math.distancesq(previousPosition, viewerPosition.Position) > 100f)
         {
@@ -57,7 +57,7 @@ partial struct EndlessTerrainSystem : ISystem
             {
                 for (int xOffset = -chunckVisibleInViewDistance; xOffset <= chunckVisibleInViewDistance; xOffset++)
                 {
-                    EntityCommandBuffer ecb2 = new EntityCommandBuffer(Allocator.Temp);
+                    EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
 
                     float2 viewedChunckCoord = new float2(currentChunckCoordX + xOffset, currentChunckCoordY + yOffset);
 
@@ -69,8 +69,8 @@ partial struct EndlessTerrainSystem : ISystem
                         if (!quadrantDiccionary.ContainsKey(quadrantCoord))
                         {
                             quadrantEntity = state.EntityManager.Instantiate(aux.quadrantEntity);
-                            ecb2.AddBuffer<ChunckEntityBuffer>(quadrantEntity);
-                            ecb2.AddComponent(quadrantEntity, new EnemiesNotCreated());
+                            ecb.AddBuffer<ChunckEntityBuffer>(quadrantEntity);
+                            ecb.AddComponent(quadrantEntity, new EnemiesNotCreated());
                             quadrantDiccionary.Add(quadrantCoord, quadrantEntity);
                         }
                         else
@@ -80,7 +80,7 @@ partial struct EndlessTerrainSystem : ISystem
 
                         Entity inst = state.EntityManager.Instantiate(aux.auxEntity);
                         diccionary.Add(viewedChunckCoord, inst);
-                        ecb2.SetComponent(inst, new MeshData
+                        ecb.SetComponent(inst, new MeshData
                         {
                             onHeightMapGenerated = false,
                             onMeshGenerated = false,
@@ -108,7 +108,7 @@ partial struct EndlessTerrainSystem : ISystem
                             if (infoToQuadrant.entityBottomRight == Entity.Null)
                             {
                                 infoToQuadrant.entityBottomRight = inst;
-                                ecb2.SetComponent(entityTopLeft, infoToQuadrant);
+                                ecb.SetComponent(entityTopLeft, infoToQuadrant);
                             }
                         }
                         
@@ -120,7 +120,7 @@ partial struct EndlessTerrainSystem : ISystem
                             if (infoToQuadrant.entityBottom == Entity.Null)
                             {
                                 infoToQuadrant.entityBottom = inst;
-                                ecb2.SetComponent(entityTop, infoToQuadrant);
+                                ecb.SetComponent(entityTop, infoToQuadrant);
                             }
                         }
 
@@ -132,7 +132,7 @@ partial struct EndlessTerrainSystem : ISystem
                             if (infoToQuadrant.entityBottomLeft == Entity.Null)
                             {
                                 infoToQuadrant.entityBottomLeft = inst;
-                                ecb2.SetComponent(entityTopRight, infoToQuadrant);
+                                ecb.SetComponent(entityTopRight, infoToQuadrant);
                             }
                         }
 
@@ -144,7 +144,7 @@ partial struct EndlessTerrainSystem : ISystem
                             if (infoToQuadrant.entityMiddleRight == Entity.Null)
                             {
                                 infoToQuadrant.entityMiddleRight = inst;
-                                ecb2.SetComponent(entityMiddleLeft, infoToQuadrant);
+                                ecb.SetComponent(entityMiddleLeft, infoToQuadrant);
                             }
                         }
 
@@ -156,7 +156,7 @@ partial struct EndlessTerrainSystem : ISystem
                             if (infoToQuadrant.entityMiddleLeft == Entity.Null)
                             {
                                 infoToQuadrant.entityMiddleLeft = inst;
-                                ecb2.SetComponent(entityMiddleRight, infoToQuadrant);
+                                ecb.SetComponent(entityMiddleRight, infoToQuadrant);
                             }
                         }
 
@@ -168,7 +168,7 @@ partial struct EndlessTerrainSystem : ISystem
                             if (infoToQuadrant.entityTopRight == Entity.Null)
                             {
                                 infoToQuadrant.entityTopRight = inst;
-                                ecb2.SetComponent(entityBottomLeft, infoToQuadrant);
+                                ecb.SetComponent(entityBottomLeft, infoToQuadrant);
                             }
                         }
 
@@ -180,7 +180,7 @@ partial struct EndlessTerrainSystem : ISystem
                             if (infoToQuadrant.entityTop == Entity.Null)
                             {
                                 infoToQuadrant.entityTop = inst;
-                                ecb2.SetComponent(entityBottom, infoToQuadrant);
+                                ecb.SetComponent(entityBottom, infoToQuadrant);
                             }
                         }
 
@@ -192,11 +192,11 @@ partial struct EndlessTerrainSystem : ISystem
                             if (infoToQuadrant.entityTopLeft == Entity.Null)
                             {
                                 infoToQuadrant.entityTopLeft = inst;
-                                ecb2.SetComponent(entityBottomRight, infoToQuadrant);
+                                ecb.SetComponent(entityBottomRight, infoToQuadrant);
                             }
                         }
 
-                        ecb2.SetComponent(inst, new InfoToQuadrant
+                        ecb.SetComponent(inst, new InfoToQuadrant
                         {
                             quadrant = quadrantEntity,
                             entityTopLeft = entityTopLeft,
@@ -210,15 +210,13 @@ partial struct EndlessTerrainSystem : ISystem
                         });
 
 
-                        ecb2.SetComponentEnabled<VerticesNotCreated>(inst, true);
+                        ecb.SetComponentEnabled<VerticesNotCreated>(inst, true);
 
-                        ecb2.Playback(state.EntityManager);
+                        ecb.Playback(state.EntityManager);
                     }
                 }
             }
         }
-
-        ecb.Playback(state.EntityManager);
     }
 
 

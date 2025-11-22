@@ -260,7 +260,7 @@ public partial struct GenerateDataJob : IJobEntity
                     float sampleY = (y - halfSize + octaveOffsets[i].y) / scale * frequency;
 
 
-                    float perlinValue = ((noise.cnoise(new float2(sampleX, sampleY)) + 1f) * 0.5f) * 2 - 1;
+                    float perlinValue = noise.cnoise(new float2(sampleX, sampleY));
                     noiseHeight += perlinValue * amplitude;
 
                     amplitude *= mapGeneratorDataJob.persistance;
@@ -528,7 +528,7 @@ public partial struct GenerateDecorationsJob : IJobEntity
                 treesPositions.Add(vertexPosition);
 
                 Entity tree = ecb.Instantiate(entityInQueryIndex, treePicked);
-                ecb.SetComponent(entityInQueryIndex, tree, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 10f });
+                ecb.SetComponent(entityInQueryIndex, tree, new LocalTransform { Position = position * 10f, Rotation = quaternion.EulerXYZ(0f, prng.NextFloat(0f, math.PI * 2f), 0f), Scale = 10f });
                 ecb.SetComponent(entityInQueryIndex, tree, new MeshLODGroupComponent { LODDistances0 = new float4(600f, 1300f, 2500f, 0f), LocalReferencePoint = new float3(0, 0, 0) });
             }
                 
@@ -597,7 +597,8 @@ public partial struct GenerateEnemiesJob : IJobEntity
                             Entity enemy = ecb.Instantiate(entityInQueryIndex, entitiesReferences.enemyRat);
                             float3 vertexPosition = posibleVertices[randomVertice].value;
                             float3 position = new float3(coord.x + vertexPosition.x, vertexPosition.y, coord.y + vertexPosition.z);
-                            ecb.SetComponent(entityInQueryIndex, enemy, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 6f });
+                            ecb.SetComponent(entityInQueryIndex, enemy, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 4f });
+                            ecb.SetComponent(entityInQueryIndex, enemy, new StartChunck { startChunckEntity = spawnEntity});
                             posibleVertices.RemoveAt(randomVertice);
                         }
                     }

@@ -14,10 +14,8 @@ public class ChunckChildAuthoring : MonoBehaviour
         {
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
             Entity chunckParent = GetEntity(authoring.chunckParent, TransformUsageFlags.Dynamic);
-            AddComponent(entity, new LocalTransform());
             AddComponent(entity, new Parent { Value = chunckParent});
             AddComponent(entity, new MeshLODComponent { ParentGroup = chunckParent, Group = chunckParent});
-            AddComponent(entity, new PhysicsCollider());
             AddComponent(entity, new CoordInfo());
             AddBuffer<VerticeFloat3Buffer>(entity);
             AddBuffer<UvFloat2Buffer>(entity);
