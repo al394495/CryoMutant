@@ -29,5 +29,5 @@ public struct StartChunck : IComponentData
 [InternalBufferCapacity(1225)]
 public struct VerticesEnemies : IBufferElementData
 {
-    float3 value;
+    public float3 value;
 }
