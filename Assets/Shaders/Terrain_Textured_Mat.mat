@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-506529362737555976
+--- !u!114 &-7490730398310042220
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
@@ -11,8 +11,8 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  version: 9
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
+  version: 10
 --- !u!21 &2100000
 Material:
   serializedVersion: 8
@@ -21,28 +21,37 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Terrain_Textured_Mat
-  m_Shader: {fileID: -6465566751694194690, guid: 9440e5f42b45f1d4588b6be605fac7f9, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 5e620cbd4d85e2e4797f08decde566ba, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
-  m_LightmapFlags: 2
+  m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
+  stringTagMap:
+    RenderType: Opaque
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _DirtTex:
-        m_Texture: {fileID: 2800000, guid: 3048fbebbd050424eae96271245f62b0, type: 3}
+    - _SampleTexture2D_59af1b6eeff24ec89b96bf218d5154be_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 7a1563c7d5100604697cce3f0098fba7, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - _GrassTex:
-        m_Texture: {fileID: 2800000, guid: 94dde8a52e2c18648ad95e526139c168, type: 3}
+    - _TextDirt:
+        m_Texture: {fileID: 2800000, guid: 15ca127cf2fde094d975f7117f67f476, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TextGrass:
+        m_Texture: {fileID: 2800000, guid: 1c8551717a093fe4ba6d1616e9ba4813, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TextWindEffect:
+        m_Texture: {fileID: 2800000, guid: 37a87d065b32cac489eba27001c91aee, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
@@ -59,14 +68,44 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AmbientIntensity: 0.2
-    - _BlendSharpness: 5
-    - _MaxHeight: 20
-    - _MinHeight: 0
-    - _NoiseScale: 0.5
-    - _NoiseStrength: 0.2
+    - _AlphaClip: 0
+    - _AlphaToMask: 0
+    - _Blend: 0
+    - _BlendModePreserveSpecular: 1
+    - _CastShadows: 1
+    - _Cull: 2
+    - _DstBlend: 0
+    - _DstBlendAlpha: 0
+    - _FloatAmbientIntensity: 0.2
+    - _FloatBlendSharpness: 20
+    - _FloatGrassHeightBlend: 50
+    - _FloatMaxHeight: 20
+    - _FloatMinHeight: 0
+    - _FloatNoiseScale: 2
+    - _FloatNoiseStrength: 0.1
+    - _FloatScaleNoiseDirt: 2000
+    - _FloatScaleNoiseGrass: 200
+    - _FloatWindNoiseSpeed: 1
     - _QueueControl: 0
     - _QueueOffset: 0
-    m_Colors: []
+    - _ReceiveShadows: 1
+    - _SrcBlend: 1
+    - _SrcBlendAlpha: 1
+    - _Surface: 0
+    - _WorkflowMode: 1
+    - _ZTest: 4
+    - _ZWrite: 1
+    - _ZWriteControl: 0
+    m_Colors:
+    - _ColorBottom: {r: 0.24448195, g: 0.7735849, b: 0.35805306, a: 1}
+    - _ColorBottomDirt: {r: 0.5943396, g: 0.38911906, b: 0.19904765, a: 1}
+    - _ColorFar: {r: 0.15999997, g: 0.30999997, b: 0.15999997, a: 1}
+    - _ColorFarDirt: {r: 0.30980387, g: 0.22578377, b: 0.16078427, a: 1}
+    - _ColorHighlight: {r: 0.4470588, g: 1, b: 0.5254902, a: 1}
+    - _ColorNear: {r: 0.19073157, g: 0.49056602, b: 0.0763617, a: 1}
+    - _ColorNearDirt: {r: 0.4245283, g: 0.25521234, b: 0.11814703, a: 1}
+    - _V2NearFarRange: {r: 400, g: 475, b: 0, a: 0}
+    - _V2WindNoiseContrast: {r: 0.2, g: 4, b: 0, a: 0}
+    - _V2WindNoiseScale: {r: 300, g: 400, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

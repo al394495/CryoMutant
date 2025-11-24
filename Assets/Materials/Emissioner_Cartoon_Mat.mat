@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Emissioner_Cartoon_Mat
-  m_Shader: {fileID: -6465566751694194690, guid: 7768b2226b676aa47a40f25d0790f308, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 43b8bc8113ceebd439c91a1c9d584d58, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -52,8 +52,8 @@ Material:
     m_Floats:
     - _AmbientIntensity: 0.2
     - _Brightness: 1
-    - _EmissionIntensity: 0.1
-    - _PulseSpeed: 5
+    - _EmissionIntensity: 0.25
+    - _PulseSpeed: 1.5
     - _QueueControl: 0
     - _QueueOffset: 0
     - _RimLightPower: 10

@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using UnityEngine;
 
 partial struct SetEnemiesMapSystem : ISystem
 {
@@ -56,6 +57,7 @@ public partial struct GetVerticesJob : IJobEntity
     public void Execute([EntityIndexInQuery] int entityInQueryIndex, in StartChunck startChunck, ref DynamicBuffer<VerticesEnemies> verticesEnemies,  EnabledRefRO<VerticesNotFound> vNotFound, Entity entity)
     {
         //Get the top left entity
+        bool ready = true;
         Entity topLeft = startChunck.startChunckEntity;
 
         for (int i = 0; i < 3; i++)
@@ -75,6 +77,7 @@ public partial struct GetVerticesJob : IJobEntity
             }
             topLeft = infoToQuadrantLookUp[topLeft].entityTop;
         }
+
 
         if (topLeft == Entity.Null) return;
 
@@ -119,7 +122,9 @@ public partial struct GetVerticesJob : IJobEntity
             currentEntity = nextRowStart;
         }
 
+        Debug.Log("tengo los vertices");
         ecb.SetBuffer<VerticesEnemies>(entityInQueryIndex, entity).CopyFrom(verticesEnemiesList.AsArray());
         ecb.SetComponentEnabled<VerticesNotFound>(entityInQueryIndex, entity, false);
+        ecb.SetComponentEnabled<MovingEnemy>(entityInQueryIndex, entity, true);
     }
 }

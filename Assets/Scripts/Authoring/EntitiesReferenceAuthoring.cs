@@ -20,10 +20,10 @@ public class EntitiesReferenceAuthoring : MonoBehaviour
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
             AddComponent(entity, new EntitiesReferences
             {
-                terrainChunkPrefabEntity = GetEntity(authoring.terrainChunkPrefabGameObject, TransformUsageFlags.Dynamic),
-                treePrefabEntity = GetEntity(authoring.treePrefabGameObject, TransformUsageFlags.Dynamic),
-                tree1PrefabEntity = GetEntity(authoring.tree1PrefabGameObject, TransformUsageFlags.Dynamic),
-                tree2PrefabEntity = GetEntity(authoring.tree2PrefabGameObject, TransformUsageFlags.Dynamic),
+                terrainChunkPrefabEntity = GetEntity(authoring.terrainChunkPrefabGameObject, TransformUsageFlags.Renderable),
+                treePrefabEntity = GetEntity(authoring.treePrefabGameObject, TransformUsageFlags.Renderable),
+                tree1PrefabEntity = GetEntity(authoring.tree1PrefabGameObject, TransformUsageFlags.Renderable),
+                tree2PrefabEntity = GetEntity(authoring.tree2PrefabGameObject, TransformUsageFlags.Renderable),
                 enemyRat = GetEntity(authoring.enemyRat, TransformUsageFlags.Dynamic),
                 enemyBee = GetEntity(authoring.enemyBee, TransformUsageFlags.Dynamic),
                 material = authoring.material,

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5264988286724136430}
   - component: {fileID: 5165369035029605068}
   - component: {fileID: 5193569612395309046}
+  - component: {fileID: 3390570461492998943}
   m_Layer: 7
   m_Name: Mouse_Enemy
   m_TagString: Untagged
@@ -99,3 +100,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b450a9adbbe70814280402eaaab25405, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  enemyRange: 200
+  enemyAttackRange: 2
+  enemySpeed: 15
+--- !u!136 &3390570461492998943
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8280856079670979508}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.8448919
+  m_Height: 4.5221934
+  m_Direction: 2
+  m_Center: {x: 0, y: 0.6, z: 1}

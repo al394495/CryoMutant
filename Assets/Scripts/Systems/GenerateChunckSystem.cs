@@ -562,7 +562,7 @@ public partial struct GenerateEnemiesJob : IJobEntity
         {
             for (int i = 0; i < chunckEntityBuffer.Length; i++)
             {
-                if (chunckEntityBuffer[i].average < 3)
+                if (chunckEntityBuffer[i].average < 2)
                 {
                     posibleLocations.Add(chunckEntityBuffer[i]);
                 }
@@ -579,12 +579,17 @@ public partial struct GenerateEnemiesJob : IJobEntity
                     DynamicBuffer<VerticeFloat3Buffer> vertices = verticesLookUp[verticesEntity];
 
                     NativeList<VerticeFloat3Buffer> posibleVertices = new NativeList<VerticeFloat3Buffer>(Allocator.Temp);
+                    NativeList<int2> coordPosibleVertices = new NativeList<int2>(Allocator.Temp);
 
-                    for (int j = 0; j < vertices.Length; j++)
+                    for (int j = 1; j < 4; j++)
                     {
-                        if (vertices[j].value.y < 3f)
+                        for (int k = 1; k < 4; k++)
                         {
-                            posibleVertices.Add(vertices[j]);
+                            if (vertices[j * 5 + k].value.y < 2f)
+                            {
+                                posibleVertices.Add(vertices[j * 5 + k]);
+                                coordPosibleVertices.Add(new int2(k, j));
+                            }
                         }
                     }
 
@@ -596,10 +601,13 @@ public partial struct GenerateEnemiesJob : IJobEntity
                             float2 coord = coordInfoLookUp[verticesEntity].coord;
                             Entity enemy = ecb.Instantiate(entityInQueryIndex, entitiesReferences.enemyRat);
                             float3 vertexPosition = posibleVertices[randomVertice].value;
-                            float3 position = new float3(coord.x + vertexPosition.x, vertexPosition.y, coord.y + vertexPosition.z);
+                            float3 position = new float3(coord.x + vertexPosition.x, vertexPosition.y + 0.1f, coord.y + vertexPosition.z);
+                            int2 origin = new int2(13 + coordPosibleVertices[randomVertice].x - 1, 13 + coordPosibleVertices[randomVertice].y - 1);
                             ecb.SetComponent(entityInQueryIndex, enemy, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 4f });
                             ecb.SetComponent(entityInQueryIndex, enemy, new StartChunck { startChunckEntity = spawnEntity});
+                            ecb.SetComponent(entityInQueryIndex, enemy, new EnemyImportantNodes { currentNode = origin, endNode = origin, originNode = origin, targetNode = origin });
                             posibleVertices.RemoveAt(randomVertice);
+                            coordPosibleVertices.RemoveAt(randomVertice);
                         }
                     }
 

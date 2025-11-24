@@ -250,7 +250,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerGameObjectPrefab: {fileID: 2534910289219525588, guid: 905a2d7038e153b4288377ee3208ed79, type: 3}
-  moveSpeed: 30
+  moveSpeed: 40
 --- !u!4 &1155603469
 Transform:
   m_ObjectHideFlags: 0
@@ -366,7 +366,7 @@ MonoBehaviour:
   tree2PrefabGameObject: {fileID: 525051458862203007, guid: b63c3b2da0171644d8b6e6f48e998160, type: 3}
   enemyRat: {fileID: 8280856079670979508, guid: d50455f55a401d94c8e89c55cf9d5292, type: 3}
   enemyBee: {fileID: 0}
-  material: {fileID: 2100000, guid: f5f83515ea0a6b24e8fdff5fca29d37c, type: 2}
+  material: {fileID: 2100000, guid: 75144d236db81da44aa6180ca8ea6b64, type: 2}
   viewer: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

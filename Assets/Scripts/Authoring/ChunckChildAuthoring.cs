@@ -12,8 +12,8 @@ public class ChunckChildAuthoring : MonoBehaviour
     {
         public override void Bake(ChunckChildAuthoring authoring)
         {
-            Entity entity = GetEntity(TransformUsageFlags.Dynamic);
-            Entity chunckParent = GetEntity(authoring.chunckParent, TransformUsageFlags.Dynamic);
+            Entity entity = GetEntity(TransformUsageFlags.Renderable);
+            Entity chunckParent = GetEntity(authoring.chunckParent, TransformUsageFlags.Renderable);
             AddComponent(entity, new Parent { Value = chunckParent});
             AddComponent(entity, new MeshLODComponent { ParentGroup = chunckParent, Group = chunckParent});
             AddComponent(entity, new CoordInfo());
