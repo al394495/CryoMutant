@@ -57,7 +57,6 @@ public partial struct GetVerticesJob : IJobEntity
     public void Execute([EntityIndexInQuery] int entityInQueryIndex, in StartChunck startChunck, ref DynamicBuffer<VerticesEnemies> verticesEnemies,  EnabledRefRO<VerticesNotFound> vNotFound, Entity entity)
     {
         //Get the top left entity
-        bool ready = true;
         Entity topLeft = startChunck.startChunckEntity;
 
         for (int i = 0; i < 3; i++)
@@ -78,7 +77,6 @@ public partial struct GetVerticesJob : IJobEntity
             topLeft = infoToQuadrantLookUp[topLeft].entityTop;
         }
 
-
         if (topLeft == Entity.Null) return;
 
         //Create the grid of vertices
@@ -88,9 +86,11 @@ public partial struct GetVerticesJob : IJobEntity
         DynamicBuffer<VerticeFloat3Buffer> currentBuffer = verticesLookUp[childContainerLookUp[currentEntity].child2];
         NativeList<VerticesEnemies> verticesEnemiesList = new NativeList<VerticesEnemies>(Allocator.Temp);
         Entity nextRowStart;
+        Entity currentRowStart;
 
         for (int i = 0; i < 7; i++)
         {
+            currentRowStart = currentEntity;
             nextRowStart = infoToQuadrantLookUp[currentEntity].entityBottom;
             if (i < 6 && nextRowStart == Entity.Null) return;
 
@@ -118,11 +118,11 @@ public partial struct GetVerticesJob : IJobEntity
                     if (k < 6 && currentEntity == Entity.Null) return;
 
                 }
+                currentEntity = currentRowStart;
             }
             currentEntity = nextRowStart;
         }
 
-        Debug.Log("tengo los vertices");
         ecb.SetBuffer<VerticesEnemies>(entityInQueryIndex, entity).CopyFrom(verticesEnemiesList.AsArray());
         ecb.SetComponentEnabled<VerticesNotFound>(entityInQueryIndex, entity, false);
         ecb.SetComponentEnabled<MovingEnemy>(entityInQueryIndex, entity, true);
