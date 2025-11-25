@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using Unity.VisualScripting;
 using UnityEngine;
 
 partial struct EnemiesMovingSystem : ISystem
@@ -69,7 +70,7 @@ public partial struct EnemiesMoveJob : IJobEntity
         }
         else
         {
-            if (math.distance(verticesEnemies[eImportantNodes.currentNode.y * 29 + eImportantNodes.currentNode.x].value, verticesEnemies[eImportantNodes.targetNode.y * 29 + eImportantNodes.targetNode.x].value) < 0.1f)
+            if (math.distance(localTransform.Position, verticesEnemies[eImportantNodes.targetNode.y * 29 + eImportantNodes.targetNode.x].value) < 1f)
             {
                 //he llegado al nodo target
                 eImportantNodes.currentNode = eImportantNodes.targetNode;
@@ -77,7 +78,7 @@ public partial struct EnemiesMoveJob : IJobEntity
                 if (math.distance(localTransform.Position, playerLocation) <= enemyRange.range)
                 {
                     //veo al jugador
-                    if (math.distance(playerLocation, verticesEnemies[eImportantNodes.endNode.y * 29 + eImportantNodes.endNode.x].value) < 5f)
+                    if (math.distance(playerLocation, verticesEnemies[eImportantNodes.endNode.y * 29 + eImportantNodes.endNode.x].value) < 10f)
                     {
                         //estoy yendo hacia el jugador -> siguiente nodo
                         if (path.Length > 0)
@@ -124,13 +125,10 @@ public partial struct EnemiesMoveJob : IJobEntity
 
                 //Debug.Log(normalizedDirection);
 
-                //localTransform.Position.xyz += normalizedDirection * enemySpeed.speed * DeltaTime;
+                localTransform.Position.xyz += normalizedDirection * enemySpeed.speed * DeltaTime;
+
                 float3 forward = new float3(normalizedDirection.x, 0f, normalizedDirection.z);
-
-                localTransform = new LocalTransform { Position = new float3(localTransform.Position.x + normalizedDirection.x * enemySpeed.speed * DeltaTime, localTransform.Position.y + normalizedDirection.y * enemySpeed.speed * DeltaTime, localTransform.Position.z + normalizedDirection.z * enemySpeed.speed * DeltaTime), Rotation = quaternion.LookRotation(forward, math.up()), Scale = 1f };
-
-                //float3 forward = new float3(normalizedDirection.x, 0f, normalizedDirection.z);
-                //localTransform.Rotation = quaternion.LookRotation(forward, math.up());
+                localTransform.Rotation = quaternion.LookRotation(forward, math.up());
             }
         }
     }
@@ -169,8 +167,11 @@ public partial struct GetPathJob : IJobEntity
                 parentsArray[y * 29 + x] = new int2(-2, -2);
                 if (math.distancesq(verticesEnemies[y * 29 + x].value, targetLocation) < math.distancesq(targetLocation, endLocation))
                 {
-                    endLocation = verticesEnemies[y * 29 + x].value;
-                    endNode = new int2(x, y);
+                    if (verticesEnemies[y * 29 + x].value.y < 20)
+                    {
+                        endLocation = verticesEnemies[y * 29 + x].value;
+                        endNode = new int2(x, y);
+                    }
                 }
             }
         }
@@ -206,12 +207,17 @@ public partial struct GetPathJob : IJobEntity
                     listPath.Add(new NodesPath { value = parentsArray[auxNode.y * 29 + auxNode.x] });
                     auxNode = parentsArray[auxNode.y * 29 + auxNode.x];
                 }
-
-                eImportantNodes.targetNode = listPath[listPath.Length - 1].value;
-                listPath.RemoveAt(listPath.Length - 1);
+                if (listPath.Length > 1)
+                {
+                    listPath.RemoveAt(listPath.Length - 1);
+                    eImportantNodes.targetNode = listPath[listPath.Length - 1].value;
+                    listPath.RemoveAt(listPath.Length - 1);
+                }
 
                 ecb.SetBuffer<NodesPath>(entityInQueryIndex, entity).CopyFrom(listPath.AsArray());
                 ecb.SetComponentEnabled<MovingEnemy>(entityInQueryIndex, entity, true);
+
+                return;
             }
 
             openList.RemoveAt(indexLowest);
@@ -256,6 +262,11 @@ public partial struct GetPathJob : IJobEntity
             foreach (int2 neighbourNode in neighboursList)
             {
                 if (closedList.Contains(neighbourNode)) continue;
+                if (verticesEnemies[neighbourNode.y * 29 + neighbourNode.x].value.y >= 20)
+                {
+                    closedList.Add(neighbourNode);
+                    continue;
+                }
 
                 float newGCost = gCostArray[lowestFCostNode.y * 29 + lowestFCostNode.x] + math.distancesq(verticesEnemies[lowestFCostNode.y * 29 + lowestFCostNode.x].value , verticesEnemies[neighbourNode.y * 29 + neighbourNode.x].value);
                 if (newGCost < gCostArray[neighbourNode.y * 29 + neighbourNode.x])

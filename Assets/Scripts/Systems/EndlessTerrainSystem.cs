@@ -17,19 +17,20 @@ partial struct EndlessTerrainSystem : ISystem
     float3 previousPosition;
 
     Entity player;
+    Entity gameState;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<PlayerTag>();
+        state.RequireForUpdate<GameStateTag>();
 
-        diccionary.Dispose();
-        diccionary = new NativeParallelHashMap<float2, Entity>(10000, Allocator.Persistent);
-        quadrantDiccionary = new NativeParallelHashMap<float2, Entity>(10000, Allocator.Persistent);
+        diccionary = new NativeParallelHashMap<float2, Entity>(10000000, Allocator.Persistent);
+        quadrantDiccionary = new NativeParallelHashMap<float2, Entity>(100000, Allocator.Persistent);
  
         chunckSize = 8;
 
-        maxViewDst = 160;
+        maxViewDst = 240;
 
         chunckVisibleInViewDistance = (int)math.round(maxViewDst / chunckSize);
 
@@ -42,181 +43,197 @@ partial struct EndlessTerrainSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         player = SystemAPI.GetSingletonEntity<PlayerTag>();
+        gameState = SystemAPI.GetSingletonEntity<GameStateTag>();
 
-        Aux aux = SystemAPI.GetSingleton<Aux>();
-        LocalTransform viewerPosition = SystemAPI.GetComponent<LocalTransform>(player);
-
-        if (math.distancesq(previousPosition, viewerPosition.Position) > 100f)
+        if (SystemAPI.GetComponent<State>(gameState).endGame == true)
         {
-            previousPosition = viewerPosition.Position;
-
-            int currentChunckCoordX = (int)math.round(viewerPosition.Position.x / chunckSize);
-            int currentChunckCoordY = (int)math.round(viewerPosition.Position.z / chunckSize);
-
-            for (int yOffset = -chunckVisibleInViewDistance; yOffset <= chunckVisibleInViewDistance; yOffset++)
+            if (SystemAPI.GetComponent<State>(gameState).freedMemory == false)
             {
-                for (int xOffset = -chunckVisibleInViewDistance; xOffset <= chunckVisibleInViewDistance; xOffset++)
+                diccionary.Dispose();
+                quadrantDiccionary.Dispose();
+                SystemAPI.SetSingleton(new State { endGame = true, freedMemory = true, gameStarted = true });
+            }
+        }
+        else
+        {
+
+            Aux aux = SystemAPI.GetSingleton<Aux>();
+            LocalTransform viewerPosition = SystemAPI.GetComponent<LocalTransform>(player);
+
+            if (math.distancesq(previousPosition, viewerPosition.Position) > 100f)
+            {
+                previousPosition = viewerPosition.Position;
+
+                int currentChunckCoordX = (int)math.round(viewerPosition.Position.x / chunckSize / 10f);
+                int currentChunckCoordY = (int)math.round(viewerPosition.Position.z / chunckSize / 10f);
+
+                for (int yOffset = -chunckVisibleInViewDistance; yOffset <= chunckVisibleInViewDistance; yOffset++)
                 {
-                    EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
-
-                    float2 viewedChunckCoord = new float2(currentChunckCoordX + xOffset, currentChunckCoordY + yOffset);
-
-                    if (!diccionary.ContainsKey(viewedChunckCoord))
+                    for (int xOffset = -chunckVisibleInViewDistance; xOffset <= chunckVisibleInViewDistance; xOffset++)
                     {
-                        float2 quadrantCoord = new float2((int)(math.round(viewedChunckCoord.x / 10)), (int)(math.round(viewedChunckCoord.y / 10)));
-                        Entity quadrantEntity;
+                        EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
 
-                        if (!quadrantDiccionary.ContainsKey(quadrantCoord))
+                        float2 viewedChunckCoord = new float2(currentChunckCoordX + xOffset, currentChunckCoordY + yOffset);
+                        //Debug.Log(viewedChunckCoord);
+
+                        if (!diccionary.ContainsKey(viewedChunckCoord))
                         {
-                            quadrantEntity = state.EntityManager.Instantiate(aux.quadrantEntity);
-                            ecb.AddBuffer<ChunckEntityBuffer>(quadrantEntity);
-                            ecb.AddComponent(quadrantEntity, new EnemiesNotCreated());
-                            quadrantDiccionary.Add(quadrantCoord, quadrantEntity);
-                        }
-                        else
-                        {
-                            quadrantEntity = quadrantDiccionary[quadrantCoord];
-                        }
+                            float2 quadrantCoord = new float2((int)(math.round(viewedChunckCoord.x / 10)), (int)(math.round(viewedChunckCoord.y / 10)));
+                            Entity quadrantEntity;
 
-                        Entity inst = state.EntityManager.Instantiate(aux.auxEntity);
-                        diccionary.Add(viewedChunckCoord, inst);
-                        ecb.SetComponent(inst, new MeshData
-                        {
-                            onHeightMapGenerated = false,
-                            onMeshGenerated = false,
-                            coord = viewedChunckCoord * chunckSize,
-                            size = chunckSize
-                        });
-
-
-                        Entity entityTopLeft = Entity.Null;
-                        Entity entityTop = Entity.Null;
-                        Entity entityTopRight = Entity.Null;
-                        Entity entityMiddleLeft = Entity.Null;
-                        Entity entityMiddleRight = Entity.Null;
-                        Entity entityBottomLeft = Entity.Null;
-                        Entity entityBottom = Entity.Null;
-                        Entity entityBottomRight = Entity.Null;
-
-                        float2 coord = viewedChunckCoord;
-
-                        float2 check = new float2(coord.x - 1, coord.y + 1);
-                        if (diccionary.ContainsKey(check))
-                        {
-                            entityTopLeft = diccionary[check];
-                            InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityTopLeft);
-                            if (infoToQuadrant.entityBottomRight == Entity.Null)
+                            if (!quadrantDiccionary.ContainsKey(quadrantCoord))
                             {
-                                infoToQuadrant.entityBottomRight = inst;
-                                ecb.SetComponent(entityTopLeft, infoToQuadrant);
+                                quadrantEntity = state.EntityManager.Instantiate(aux.quadrantEntity);
+                                ecb.AddBuffer<ChunckEntityBuffer>(quadrantEntity);
+                                ecb.AddComponent(quadrantEntity, new EnemiesNotCreated());
+                                quadrantDiccionary.Add(quadrantCoord, quadrantEntity);
                             }
-                        }
-                        
-                        check = new float2(coord.x, coord.y + 1);
-                        if (diccionary.ContainsKey(check))
-                        {
-                            entityTop = diccionary[check];
-                            InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityTop);
-                            if (infoToQuadrant.entityBottom == Entity.Null)
+                            else
                             {
-                                infoToQuadrant.entityBottom = inst;
-                                ecb.SetComponent(entityTop, infoToQuadrant);
+                                quadrantEntity = quadrantDiccionary[quadrantCoord];
                             }
-                        }
 
-                        check = new float2(coord.x + 1, coord.y + 1);
-                        if (diccionary.ContainsKey(check))
-                        {
-                            entityTopRight = diccionary[check];
-                            InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityTopRight);
-                            if (infoToQuadrant.entityBottomLeft == Entity.Null)
+                            Entity inst = state.EntityManager.Instantiate(aux.auxEntity);
+                            diccionary.Add(viewedChunckCoord, inst);
+                            ecb.SetComponent(inst, new MeshData
                             {
-                                infoToQuadrant.entityBottomLeft = inst;
-                                ecb.SetComponent(entityTopRight, infoToQuadrant);
-                            }
-                        }
+                                onHeightMapGenerated = false,
+                                onMeshGenerated = false,
+                                coord = viewedChunckCoord * 8,
+                                size = chunckSize
+                            });
 
-                        check = new float2(coord.x - 1, coord.y);
-                        if (diccionary.ContainsKey(check))
-                        {
-                            entityMiddleLeft = diccionary[check];
-                            InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityMiddleLeft);
-                            if (infoToQuadrant.entityMiddleRight == Entity.Null)
+
+                            Entity entityTopLeft = Entity.Null;
+                            Entity entityTop = Entity.Null;
+                            Entity entityTopRight = Entity.Null;
+                            Entity entityMiddleLeft = Entity.Null;
+                            Entity entityMiddleRight = Entity.Null;
+                            Entity entityBottomLeft = Entity.Null;
+                            Entity entityBottom = Entity.Null;
+                            Entity entityBottomRight = Entity.Null;
+
+                            float2 coord = viewedChunckCoord;
+
+                            float2 check = new float2(coord.x - 1, coord.y + 1);
+                            if (diccionary.ContainsKey(check))
                             {
-                                infoToQuadrant.entityMiddleRight = inst;
-                                ecb.SetComponent(entityMiddleLeft, infoToQuadrant);
+                                entityTopLeft = diccionary[check];
+                                InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityTopLeft);
+                                if (infoToQuadrant.entityBottomRight == Entity.Null)
+                                {
+                                    infoToQuadrant.entityBottomRight = inst;
+                                    ecb.SetComponent(entityTopLeft, infoToQuadrant);
+                                }
                             }
-                        }
 
-                        check = new float2(coord.x + 1, coord.y);
-                        if (diccionary.ContainsKey(check))
-                        {
-                            entityMiddleRight = diccionary[check];
-                            InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityMiddleRight);
-                            if (infoToQuadrant.entityMiddleLeft == Entity.Null)
+                            check = new float2(coord.x, coord.y + 1);
+                            if (diccionary.ContainsKey(check))
                             {
-                                infoToQuadrant.entityMiddleLeft = inst;
-                                ecb.SetComponent(entityMiddleRight, infoToQuadrant);
+                                entityTop = diccionary[check];
+                                InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityTop);
+                                if (infoToQuadrant.entityBottom == Entity.Null)
+                                {
+                                    infoToQuadrant.entityBottom = inst;
+                                    ecb.SetComponent(entityTop, infoToQuadrant);
+                                }
                             }
-                        }
 
-                        check = new float2(coord.x - 1, coord.y - 1);
-                        if (diccionary.ContainsKey(check))
-                        {
-                            entityBottomLeft = diccionary[check];
-                            InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityBottomLeft);
-                            if (infoToQuadrant.entityTopRight == Entity.Null)
+                            check = new float2(coord.x + 1, coord.y + 1);
+                            if (diccionary.ContainsKey(check))
                             {
-                                infoToQuadrant.entityTopRight = inst;
-                                ecb.SetComponent(entityBottomLeft, infoToQuadrant);
+                                entityTopRight = diccionary[check];
+                                InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityTopRight);
+                                if (infoToQuadrant.entityBottomLeft == Entity.Null)
+                                {
+                                    infoToQuadrant.entityBottomLeft = inst;
+                                    ecb.SetComponent(entityTopRight, infoToQuadrant);
+                                }
                             }
-                        }
 
-                        check = new float2(coord.x, coord.y - 1);
-                        if (diccionary.ContainsKey(check))
-                        {
-                            entityBottom = diccionary[check];
-                            InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityBottom);
-                            if (infoToQuadrant.entityTop == Entity.Null)
+                            check = new float2(coord.x - 1, coord.y);
+                            if (diccionary.ContainsKey(check))
                             {
-                                infoToQuadrant.entityTop = inst;
-                                ecb.SetComponent(entityBottom, infoToQuadrant);
+                                entityMiddleLeft = diccionary[check];
+                                InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityMiddleLeft);
+                                if (infoToQuadrant.entityMiddleRight == Entity.Null)
+                                {
+                                    infoToQuadrant.entityMiddleRight = inst;
+                                    ecb.SetComponent(entityMiddleLeft, infoToQuadrant);
+                                }
                             }
-                        }
 
-                        check = new float2(coord.x + 1, coord.y - 1);
-                        if (diccionary.ContainsKey(check))
-                        {
-                            entityBottomRight = diccionary[check];
-                            InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityBottomRight);
-                            if (infoToQuadrant.entityTopLeft == Entity.Null)
+                            check = new float2(coord.x + 1, coord.y);
+                            if (diccionary.ContainsKey(check))
                             {
-                                infoToQuadrant.entityTopLeft = inst;
-                                ecb.SetComponent(entityBottomRight, infoToQuadrant);
+                                entityMiddleRight = diccionary[check];
+                                InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityMiddleRight);
+                                if (infoToQuadrant.entityMiddleLeft == Entity.Null)
+                                {
+                                    infoToQuadrant.entityMiddleLeft = inst;
+                                    ecb.SetComponent(entityMiddleRight, infoToQuadrant);
+                                }
                             }
+
+                            check = new float2(coord.x - 1, coord.y - 1);
+                            if (diccionary.ContainsKey(check))
+                            {
+                                entityBottomLeft = diccionary[check];
+                                InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityBottomLeft);
+                                if (infoToQuadrant.entityTopRight == Entity.Null)
+                                {
+                                    infoToQuadrant.entityTopRight = inst;
+                                    ecb.SetComponent(entityBottomLeft, infoToQuadrant);
+                                }
+                            }
+
+                            check = new float2(coord.x, coord.y - 1);
+                            if (diccionary.ContainsKey(check))
+                            {
+                                entityBottom = diccionary[check];
+                                InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityBottom);
+                                if (infoToQuadrant.entityTop == Entity.Null)
+                                {
+                                    infoToQuadrant.entityTop = inst;
+                                    ecb.SetComponent(entityBottom, infoToQuadrant);
+                                }
+                            }
+
+                            check = new float2(coord.x + 1, coord.y - 1);
+                            if (diccionary.ContainsKey(check))
+                            {
+                                entityBottomRight = diccionary[check];
+                                InfoToQuadrant infoToQuadrant = SystemAPI.GetComponent<InfoToQuadrant>(entityBottomRight);
+                                if (infoToQuadrant.entityTopLeft == Entity.Null)
+                                {
+                                    infoToQuadrant.entityTopLeft = inst;
+                                    ecb.SetComponent(entityBottomRight, infoToQuadrant);
+                                }
+                            }
+
+                            ecb.SetComponent(inst, new InfoToQuadrant
+                            {
+                                quadrant = quadrantEntity,
+                                entityTopLeft = entityTopLeft,
+                                entityTop = entityTop,
+                                entityTopRight = entityTopRight,
+                                entityMiddleLeft = entityMiddleLeft,
+                                entityMiddleRight = entityMiddleRight,
+                                entityBottomLeft = entityBottomLeft,
+                                entityBottom = entityBottom,
+                                entityBottomRight = entityBottomRight
+                            });
+
+
+                            ecb.SetComponentEnabled<VerticesNotCreated>(inst, true);
+
+                            ecb.Playback(state.EntityManager);
                         }
-
-                        ecb.SetComponent(inst, new InfoToQuadrant
-                        {
-                            quadrant = quadrantEntity,
-                            entityTopLeft = entityTopLeft,
-                            entityTop = entityTop,
-                            entityTopRight = entityTopRight,
-                            entityMiddleLeft = entityMiddleLeft,
-                            entityMiddleRight = entityMiddleRight,
-                            entityBottomLeft = entityBottomLeft,
-                            entityBottom = entityBottom,
-                            entityBottomRight = entityBottomRight
-                        });
-
-
-                        ecb.SetComponentEnabled<VerticesNotCreated>(inst, true);
-
-                        ecb.Playback(state.EntityManager);
                     }
                 }
             }
         }
+        
     }
 
 

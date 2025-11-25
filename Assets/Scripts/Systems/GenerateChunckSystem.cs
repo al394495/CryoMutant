@@ -13,7 +13,7 @@ partial struct GenerateChunckSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-
+        state.RequireForUpdate<GameStateTag>();
     }
 
 
@@ -21,6 +21,7 @@ partial struct GenerateChunckSystem : ISystem
     {
         MapGeneratorData mapGeneratorData = SystemAPI.GetSingleton<MapGeneratorData>();
         EntitiesReferences entitiesReferences = SystemAPI.GetSingleton<EntitiesReferences>();
+        Entity gameState = SystemAPI.GetSingletonEntity<GameStateTag>();
         EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
         EntityCommandBuffer ecb2 = new EntityCommandBuffer(Allocator.TempJob);
 
@@ -56,7 +57,7 @@ partial struct GenerateChunckSystem : ISystem
                 Vector3[] normals = new Vector3[normalsBuffer.Length];
                 int[] triangles = new int[trianglesBuffer.Length];
 
-                //Debug.Log("Tengo tantos vertices " + vertices.Length);
+
 
                 Mesh mesh = new Mesh();
 
@@ -124,6 +125,8 @@ partial struct GenerateChunckSystem : ISystem
 
                 float3 position = new float3(coord.x, 0f, coord.y);
 
+                //Debug.Log(position * 10);
+
                 if (vertices.Length == 81) ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
 
                 ecb.SetComponent(entity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
@@ -149,6 +152,16 @@ partial struct GenerateChunckSystem : ISystem
 
                     ecb.AppendToBuffer<ChunckEntityBuffer>(quadrant, new ChunckEntityBuffer { average = (float)(heightSum / 25), chunckEntity = parent });
                 }
+
+                if (SystemAPI.GetComponent<TerrainCreated>(gameState).terrainCount < 10000)
+                {
+                    Entity player = SystemAPI.GetSingletonEntity<PlayerTag>();
+                    SystemAPI.SetComponent(player, new PhysicsGravityFactor { Value = 0 });
+                    TerrainCreated terrainCreated = SystemAPI.GetComponent<TerrainCreated>(gameState);
+                    terrainCreated.terrainCount++;
+                    SystemAPI.SetComponent(gameState, terrainCreated);
+                }
+
             }
             else if(countLimit >= 5)
             {

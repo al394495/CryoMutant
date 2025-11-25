@@ -24,7 +24,7 @@ public partial struct PlayerMoveJob : IJobEntity
     private void Execute(ref LocalTransform transform, in PlayerMoveInput moveInput, in PlayerMoveSpeed moveSpeed, ref PhysicsVelocity physicsVelocity, ref PhysicsMass physicsMass)
     {
         float velocityY = physicsVelocity.Linear.y;
-        physicsVelocity.Linear = new float3(moveInput.moveInput.x * moveSpeed.moveSpeed, -10f, moveInput.moveInput.y * moveSpeed.moveSpeed);
+        physicsVelocity.Linear = new float3(moveInput.moveInput.x * moveSpeed.moveSpeed, velocityY, moveInput.moveInput.y * moveSpeed.moveSpeed);
         physicsVelocity.Angular = float3.zero;
         physicsMass.InverseInertia = float3.zero;
 
