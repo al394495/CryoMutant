@@ -610,11 +610,18 @@ public partial struct GenerateEnemiesJob : IJobEntity
                     {
                         if (posibleVertices.Length > 0)
                         {
+                            NativeArray<Entity> posibleEnemies = new NativeArray<Entity>(2, Allocator.Temp);
+                            posibleEnemies[0] = entitiesReferences.enemyRat;
+                            posibleEnemies[1] = entitiesReferences.enemyBee;
+
+                            int randomRange = prng.NextInt(0, 2);
+                            Entity enemyPicked = posibleEnemies[randomRange];
+
                             int randomVertice = prng.NextInt(0, posibleVertices.Length);
                             float2 coord = coordInfoLookUp[verticesEntity].coord;
-                            Entity enemy = ecb.Instantiate(entityInQueryIndex, entitiesReferences.enemyRat);
+                            Entity enemy = ecb.Instantiate(entityInQueryIndex, enemyPicked);
                             float3 vertexPosition = posibleVertices[randomVertice].value;
-                            float3 position = new float3(coord.x + vertexPosition.x, vertexPosition.y + 0.1f, coord.y + vertexPosition.z);
+                            float3 position = new float3(coord.x + vertexPosition.x, vertexPosition.y, coord.y + vertexPosition.z);
                             int2 origin = new int2(13 + coordPosibleVertices[randomVertice].x - 1, 13 + coordPosibleVertices[randomVertice].y - 1);
                             ecb.SetComponent(entityInQueryIndex, enemy, new LocalTransform { Position = position * 10f, Rotation = quaternion.identity, Scale = 4f });
                             ecb.SetComponent(entityInQueryIndex, enemy, new StartChunck { startChunckEntity = spawnEntity});

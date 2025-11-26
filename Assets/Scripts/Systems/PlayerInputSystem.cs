@@ -11,6 +11,7 @@ partial class PlayerInputSystem : SystemBase
 
     protected override void OnCreate()
     {
+        RequireForUpdate<PlayerTag>();
         movementActions = new MovementActions();
     }
 

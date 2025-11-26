@@ -409,7 +409,7 @@ MonoBehaviour:
   tree1PrefabGameObject: {fileID: 525051458862203007, guid: 9c16bef3fe98ca547aa3c6d84cac4fe1, type: 3}
   tree2PrefabGameObject: {fileID: 525051458862203007, guid: b63c3b2da0171644d8b6e6f48e998160, type: 3}
   enemyRat: {fileID: 8280856079670979508, guid: d50455f55a401d94c8e89c55cf9d5292, type: 3}
-  enemyBee: {fileID: 0}
+  enemyBee: {fileID: 8845204698068447818, guid: dd30e598c6f3db648a383ebbef5d0f81, type: 3}
   material: {fileID: 2100000, guid: 75144d236db81da44aa6180ca8ea6b64, type: 2}
   viewer: {fileID: 0}
 --- !u!1660057539 &9223372036854775807

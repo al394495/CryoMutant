@@ -1,6 +1,7 @@
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class CheckEndGame : MonoBehaviour
 {
@@ -22,7 +23,8 @@ public class CheckEndGame : MonoBehaviour
             State state = entityManager.GetComponentData<State>(entityArray[i]);
             if (state.endGame == true && state.freedMemory == true)
             {
-                //cambio de escena
+                entityManager.DestroyEntity(entityArray[i]);
+                SceneManager.LoadScene("InitialScene");
             }
         }
 

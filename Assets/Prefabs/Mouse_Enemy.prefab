@@ -29,7 +29,7 @@ Transform:
   m_GameObject: {fileID: 8280856079670979508}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: -100, z: 0}
+  m_LocalPosition: {x: -0, y: -200, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -101,7 +101,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyRange: 150
-  enemyAttackRange: 2
+  enemyAttackRange: 10
   enemySpeed: 25
 --- !u!136 &3390570461492998943
 CapsuleCollider:

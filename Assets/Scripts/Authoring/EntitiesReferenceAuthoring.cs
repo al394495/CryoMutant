@@ -11,7 +11,6 @@ public class EntitiesReferenceAuthoring : MonoBehaviour
     public GameObject enemyRat;
     public GameObject enemyBee;
     public Material material;
-    public Transform viewer;
 
     public class Baker : Baker<EntitiesReferenceAuthoring>
     {
@@ -27,7 +26,6 @@ public class EntitiesReferenceAuthoring : MonoBehaviour
                 enemyRat = GetEntity(authoring.enemyRat, TransformUsageFlags.Dynamic),
                 enemyBee = GetEntity(authoring.enemyBee, TransformUsageFlags.Dynamic),
                 material = authoring.material,
-                viewer = authoring.viewer,
                 example = entity
             });
         }
@@ -45,5 +43,4 @@ public struct EntitiesReferences : IComponentData
     public Entity enemyBee;
     public Entity example;
     public UnityObjectRef<Material> material;
-    public UnityObjectRef<Transform> viewer;
 }
