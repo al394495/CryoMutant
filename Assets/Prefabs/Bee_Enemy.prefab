@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4663744275905885312}
   - component: {fileID: 870845768484039077}
   - component: {fileID: 5408479962550140811}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Bee
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -97,7 +97,7 @@ GameObject:
   - component: {fileID: 1350273517811761533}
   - component: {fileID: 5205905897618038354}
   - component: {fileID: 788177454379073906}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: RightWing
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -182,8 +182,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2739053067651535518}
   - component: {fileID: 5133911818832119062}
-  - component: {fileID: 217441555181266861}
-  m_Layer: 0
+  - component: {fileID: -1894260983975924940}
+  - component: {fileID: 5479508040649899037}
+  m_Layer: 7
   m_Name: Bee_Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -221,9 +222,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyRange: 200
-  enemyAttackRange: 30
+  enemyAttackRange: 40
   enemySpeed: 15
---- !u!136 &217441555181266861
+  health: 20
+  attackTimer: 1
+--- !u!114 &-1894260983975924940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8845204698068447818}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a57fe62550b4044bbe3efeb51a4b9b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  beeBulletPrefab: {fileID: 7287944905514009103, guid: b7257eaa65d84984eab6e610cd3ac89e, type: 3}
+--- !u!136 &5479508040649899037
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -242,10 +258,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 1
-  m_Height: 5.8
+  m_Radius: 0.5
+  m_Height: 1
   m_Direction: 1
-  m_Center: {x: 0, y: 3, z: 0}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8990769224935130949
 GameObject:
   m_ObjectHideFlags: 0
@@ -257,7 +273,7 @@ GameObject:
   - component: {fileID: 2938829742440678049}
   - component: {fileID: 6058529522994655912}
   - component: {fileID: 136820083997351219}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: LeftWing
   m_TagString: Untagged
   m_Icon: {fileID: 0}

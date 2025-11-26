@@ -66,7 +66,14 @@ public partial struct EnemiesMoveJob : IJobEntity
     {
         if (math.distance(localTransform.Position, playerLocation) <= enemyRange.attackRange)
         {
-            //ataco
+            //ataco mirar direccion, activar enable de ataque
+            float3 direction = playerLocation - localTransform.Position;
+            float3 normalizedDirection = math.normalize(direction);
+
+            float3 forward = new float3(normalizedDirection.x, 0f, normalizedDirection.z);
+            localTransform.Rotation = quaternion.LookRotation(forward, math.up());
+
+            ecb.SetComponentEnabled<EnemyAttack>(entityInQueryIndex, entity, true);
         }
         else
         {

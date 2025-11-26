@@ -8,7 +8,9 @@ using UnityEngine.UIElements;
 public class PlayerAuthoring : MonoBehaviour
 {
     public GameObject playerGameObjectPrefab;
+    public GameObject playerBulletPrefab;
     public float moveSpeed;
+    public int health;
     public class Baker : Baker<PlayerAuthoring>
     {
         public override void Bake(PlayerAuthoring authoring)
@@ -19,6 +21,10 @@ public class PlayerAuthoring : MonoBehaviour
             AddComponent(entity, new PlayerMoveSpeed { moveSpeed = authoring.moveSpeed });
             AddComponent(entity, new PlayerGameObjectPrefab { prefab = authoring.playerGameObjectPrefab });
             AddComponent(entity, new PhysicsGravityFactor { Value = 5f });
+            AddComponent(entity, new PlayerHealth { health = authoring.health });
+            AddComponent(entity, new PlayerAttack());
+            AddComponent(entity, new PlayerBulletPrefab { bullet = GetEntity(authoring.playerBulletPrefab, TransformUsageFlags.Dynamic) });
+            SetComponentEnabled<PlayerAttack>(entity, false);
         }
     }
 }
@@ -26,6 +32,11 @@ public class PlayerAuthoring : MonoBehaviour
 public struct PlayerTag : IComponentData
 {
 
+}
+
+public struct PlayerBulletPrefab : IComponentData
+{
+    public Entity bullet;
 }
 
 public struct PlayerMoveInput : IComponentData
@@ -36,6 +47,16 @@ public struct PlayerMoveInput : IComponentData
 public struct PlayerMoveSpeed : IComponentData
 {
     public float moveSpeed;
+}
+
+public struct PlayerHealth : IComponentData
+{
+    public int health;
+}
+
+public struct PlayerAttack : IComponentData, IEnableableComponent
+{
+
 }
 
 public struct PlayerGameObjectPrefab : IComponentData

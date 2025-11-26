@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [UpdateInGroup(typeof(InitializationSystemGroup), OrderLast = true)]
 partial class PlayerInputSystem : SystemBase
@@ -18,7 +19,7 @@ partial class PlayerInputSystem : SystemBase
     protected override void OnStartRunning()
     {
         movementActions.Enable();
-
+        movementActions.Map.PlayerAttack.performed += OnPlayerShoot;
         playerEntity = SystemAPI.GetSingletonEntity<PlayerTag>();
     }
 
@@ -30,11 +31,19 @@ partial class PlayerInputSystem : SystemBase
 
     protected override void OnStopRunning()
     {
+        movementActions.Map.PlayerAttack.performed -= OnPlayerShoot;
         movementActions.Disable();
     }
 
     protected override void OnDestroy()
     {
 
+    }
+
+    private void OnPlayerShoot(InputAction.CallbackContext obj)
+    {
+        if (!SystemAPI.Exists(playerEntity)) return;
+
+        SystemAPI.SetComponentEnabled<PlayerAttack>(playerEntity, true);
     }
 }

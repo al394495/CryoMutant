@@ -8,6 +8,8 @@ public class EnemyAuthoring : MonoBehaviour
     public float enemyRange;
     public float enemyAttackRange;
     public float enemySpeed;
+    public int health;
+    public float attackTimer;
 
     public class Baker : Baker<EnemyAuthoring>
     {
@@ -26,6 +28,10 @@ public class EnemyAuthoring : MonoBehaviour
             AddComponent(entity, new EnemyRange { range = authoring.enemyRange, attackRange = authoring.enemyAttackRange });
             AddComponent(entity, new EnemySpeed { speed = authoring.enemySpeed });
             AddComponent(entity, new EnemyTargetPosition { position = float3.zero });
+            AddComponent(entity, new EnemyHealth { health = authoring.health });
+            AddComponent(entity, new EnemyAttackTimer { attackTimer = authoring.attackTimer });
+            AddComponent(entity, new EnemyAttack());
+            SetComponentEnabled<EnemyAttack>(entity, false);
             AddBuffer<VerticesEnemies>(entity);
             AddBuffer<NodesPath>(entity);
         }
@@ -52,6 +58,11 @@ public struct InRange : IComponentData, IEnableableComponent
 
 }
 
+public struct EnemyAttack : IComponentData, IEnableableComponent
+{
+
+}
+
 public struct StartChunck : IComponentData
 {
     public Entity startChunckEntity;
@@ -74,6 +85,16 @@ public struct EnemyRange : IComponentData
 {
     public float range;
     public float attackRange;
+}
+
+public struct EnemyHealth : IComponentData
+{
+    public int health;
+}
+
+public struct EnemyAttackTimer : IComponentData
+{
+    public float attackTimer;
 }
 
 public struct EnemySpeed : IComponentData 
