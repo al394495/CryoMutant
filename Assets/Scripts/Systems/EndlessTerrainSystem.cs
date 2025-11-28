@@ -54,6 +54,7 @@ partial struct EndlessTerrainSystem : ISystem
                 quadrantDiccionary.Dispose();
                 diccionary = new NativeParallelHashMap<float2, Entity>(10000000, Allocator.Persistent);
                 quadrantDiccionary = new NativeParallelHashMap<float2, Entity>(100000, Allocator.Persistent);
+                SystemAPI.SetSingleton<GotSeed>(new GotSeed { value = false });
                 SystemAPI.SetSingleton(new State { endGame = true, freedMemory = true, gameStarted = true });
                 state.EntityManager.DestroyEntity(player);
             }

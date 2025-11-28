@@ -30,6 +30,7 @@ public class MapGeneratorAuthoring : MonoBehaviour
                 seed = authoring.seed,
                 offset = authoring.offset,
             });
+            AddComponent(entity, new GotSeed { value = false});
         }
     }
 }
@@ -47,4 +48,9 @@ public struct MapGeneratorData : IComponentData
 
     public int seed;
     public float2 offset;
+}
+
+public struct GotSeed : IComponentData
+{
+    public bool value;
 }

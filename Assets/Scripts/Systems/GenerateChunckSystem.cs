@@ -22,197 +22,212 @@ partial struct GenerateChunckSystem : ISystem
         MapGeneratorData mapGeneratorData = SystemAPI.GetSingleton<MapGeneratorData>();
         EntitiesReferences entitiesReferences = SystemAPI.GetSingleton<EntitiesReferences>();
         Entity gameState = SystemAPI.GetSingletonEntity<GameStateTag>();
+        GotSeed gotSeed = SystemAPI.GetSingleton<GotSeed>();
         EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
         EntityCommandBuffer ecb2 = new EntityCommandBuffer(Allocator.TempJob);
 
-        GenerateDataJob generateDataJob = new GenerateDataJob
+        if (gotSeed.value == false)
         {
-            mapGeneratorDataJob = mapGeneratorData,
-            entitiesReferences = entitiesReferences,
-            ecb = ecb2.AsParallelWriter()
-        };
-
-        generateDataJob.ScheduleParallel(state.Dependency).Complete();
-
-        ecb2.Playback(state.EntityManager);
-
-        ecb2.Dispose();
-
-        int countLimit = 0;
-
-        foreach ((RefRW<CoordInfo> coordInfo, EnabledRefRO<MeshNotCreated> created, Entity entity) in SystemAPI.Query<RefRW<CoordInfo>, EnabledRefRO<MeshNotCreated>>().WithEntityAccess())
+            uint seed = (uint)(SystemAPI.Time.ElapsedTime * 100 + 1);
+            Unity.Mathematics.Random prng = new Unity.Mathematics.Random(seed);
+            mapGeneratorData.seed = prng.NextInt(1, 5000);
+            gotSeed.value = true;
+            SystemAPI.SetSingleton<MapGeneratorData>(mapGeneratorData);
+            SystemAPI.SetSingleton<GotSeed>(gotSeed);
+        }
+        else
         {
-            if (countLimit < 5)
+            GenerateDataJob generateDataJob = new GenerateDataJob
             {
-                DynamicBuffer<VerticeFloat3Buffer> verticesBuffer = SystemAPI.GetBuffer<VerticeFloat3Buffer>(entity);
-                DynamicBuffer<UvFloat2Buffer> uvsBuffer = SystemAPI.GetBuffer<UvFloat2Buffer>(entity);
-                DynamicBuffer<TriangleIntBuffer> trianglesBuffer = SystemAPI.GetBuffer<TriangleIntBuffer>(entity);
-                DynamicBuffer<NormalFloat3Buffer> normalsBuffer = SystemAPI.GetBuffer<NormalFloat3Buffer>(entity);
+                mapGeneratorDataJob = mapGeneratorData,
+                entitiesReferences = entitiesReferences,
+                ecb = ecb2.AsParallelWriter()
+            };
 
-                NativeArray<float3> verticesNativeArray = new NativeArray<float3>(verticesBuffer.Length, Allocator.Temp);
-                NativeArray<int3> trianglesNativeArray = new NativeArray<int3>(trianglesBuffer.Length, Allocator.Temp);
+            generateDataJob.ScheduleParallel(state.Dependency).Complete();
 
-                Vector3[] vertices = new Vector3[verticesBuffer.Length];
-                Vector2[] uvs = new Vector2[uvsBuffer.Length];
-                Vector3[] normals = new Vector3[normalsBuffer.Length];
-                int[] triangles = new int[trianglesBuffer.Length];
+            ecb2.Playback(state.EntityManager);
 
+            ecb2.Dispose();
 
+            int countLimit = 0;
 
-                Mesh mesh = new Mesh();
-
-                float3 min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
-                float3 max = new float3(float.MinValue, float.MinValue, float.MinValue);
-
-                float heightSum = 0;
-
-                for (int i = 0; i < verticesBuffer.Length; i++)
+            foreach ((RefRW<CoordInfo> coordInfo, EnabledRefRO<MeshNotCreated> created, Entity entity) in SystemAPI.Query<RefRW<CoordInfo>, EnabledRefRO<MeshNotCreated>>().WithEntityAccess())
+            {
+                if (countLimit < 5)
                 {
-                    vertices[i] = verticesBuffer[i].value;
-                    uvs[i] = uvsBuffer[i].value;
+                    DynamicBuffer<VerticeFloat3Buffer> verticesBuffer = SystemAPI.GetBuffer<VerticeFloat3Buffer>(entity);
+                    DynamicBuffer<UvFloat2Buffer> uvsBuffer = SystemAPI.GetBuffer<UvFloat2Buffer>(entity);
+                    DynamicBuffer<TriangleIntBuffer> trianglesBuffer = SystemAPI.GetBuffer<TriangleIntBuffer>(entity);
+                    DynamicBuffer<NormalFloat3Buffer> normalsBuffer = SystemAPI.GetBuffer<NormalFloat3Buffer>(entity);
 
-                    normals[i] = normalsBuffer[i].value;
+                    NativeArray<float3> verticesNativeArray = new NativeArray<float3>(verticesBuffer.Length, Allocator.Temp);
+                    NativeArray<int3> trianglesNativeArray = new NativeArray<int3>(trianglesBuffer.Length, Allocator.Temp);
 
-                    verticesNativeArray[i] = verticesBuffer[i].value;
+                    Vector3[] vertices = new Vector3[verticesBuffer.Length];
+                    Vector2[] uvs = new Vector2[uvsBuffer.Length];
+                    Vector3[] normals = new Vector3[normalsBuffer.Length];
+                    int[] triangles = new int[trianglesBuffer.Length];
 
-                    min = math.min(verticesBuffer[i].value, min);
-                    max = math.max(verticesBuffer[i].value, max);
 
-                    if (verticesBuffer.Length == 25)
+
+                    Mesh mesh = new Mesh();
+
+                    float3 min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
+                    float3 max = new float3(float.MinValue, float.MinValue, float.MinValue);
+
+                    float heightSum = 0;
+
+                    for (int i = 0; i < verticesBuffer.Length; i++)
                     {
-                        heightSum += verticesBuffer[i].value.y;
+                        vertices[i] = verticesBuffer[i].value;
+                        uvs[i] = uvsBuffer[i].value;
+
+                        normals[i] = normalsBuffer[i].value;
+
+                        verticesNativeArray[i] = verticesBuffer[i].value;
+
+                        min = math.min(verticesBuffer[i].value, min);
+                        max = math.max(verticesBuffer[i].value, max);
+
+                        if (verticesBuffer.Length == 25)
+                        {
+                            heightSum += verticesBuffer[i].value.y;
+                        }
+
                     }
 
-                }
+                    int count = 0;
+                    int triangleCount = 0;
 
-                int count = 0;
-                int triangleCount = 0;
-
-                for (int i = 0; i < trianglesBuffer.Length; i++)
-                {
-                    triangles[i] = trianglesBuffer[i].value;
-
-                    if ((count + 1) % 3 == 0)
+                    for (int i = 0; i < trianglesBuffer.Length; i++)
                     {
-                        trianglesNativeArray[triangleCount] = new int3(trianglesBuffer[i - 2].value, trianglesBuffer[i - 1].value, trianglesBuffer[i].value);
+                        triangles[i] = trianglesBuffer[i].value;
 
-                        triangleCount++;
+                        if ((count + 1) % 3 == 0)
+                        {
+                            trianglesNativeArray[triangleCount] = new int3(trianglesBuffer[i - 2].value, trianglesBuffer[i - 1].value, trianglesBuffer[i].value);
+
+                            triangleCount++;
+                        }
+
+                        count++;
                     }
 
-                    count++;
-                }
+                    mesh.vertices = vertices;
+                    mesh.triangles = triangles;
+                    mesh.uv = uvs;
+                    mesh.normals = normals;
 
-                mesh.vertices = vertices;
-                mesh.triangles = triangles;
-                mesh.uv = uvs;
-                mesh.normals = normals;
-
-                RenderMeshArray meshArray = new RenderMeshArray(
-                    new UnityEngine.Material[] {
+                    RenderMeshArray meshArray = new RenderMeshArray(
+                        new UnityEngine.Material[] {
                 entitiesReferences.material
-                    }, new Mesh[] {
+                        }, new Mesh[] {
                 mesh,
-                    }, new MaterialMeshIndex[] {
+                        }, new MaterialMeshIndex[] {
                 new MaterialMeshIndex { MaterialIndex = 0, MeshIndex = 0 }
+                        }
+                        );
+
+                    float2 coord = coordInfo.ValueRO.coord;
+                    int size = coordInfo.ValueRO.size;
+                    //Entity entity = meshData.ValueRW.myEntity;
+
+                    float scale = 10f;
+
+                    float3 position = new float3(coord.x, 0f, coord.y);
+
+                    //Debug.Log(position * 10);
+
+                    if (vertices.Length == 81) ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
+
+                    ecb.SetComponent(entity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
+                    ecb.SetSharedComponentManaged<RenderMeshArray>(entity, meshArray);
+                    ecb.SetComponent(entity, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
+                    ecb.SetComponent(entity, new RenderBounds { Value = new AABB { Center = (max + min) * 0.5f, Extents = (max - min) * 0.5f } });
+
+                    ecb.SetComponentEnabled<MeshNotCreated>(entity, false);
+
+                    if (vertices.Length == 81)
+                    {
+                        ecb.SetComponentEnabled<DecorationsNotCreated>(entity, true);
+
+
+                        //ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
+
                     }
-                    );
 
-                float2 coord = coordInfo.ValueRO.coord;
-                int size = coordInfo.ValueRO.size;
-                //Entity entity = meshData.ValueRW.myEntity;
+                    if (vertices.Length == 25)
+                    {
+                        Entity parent = SystemAPI.GetComponent<Parent>(entity).Value;
+                        Entity quadrant = SystemAPI.GetComponent<InfoToQuadrant>(parent).quadrant;
 
-                float scale = 10f;
+                        ecb.AppendToBuffer<ChunckEntityBuffer>(quadrant, new ChunckEntityBuffer { average = (float)(heightSum / 25), chunckEntity = parent });
+                    }
 
-                float3 position = new float3(coord.x, 0f, coord.y);
-
-                //Debug.Log(position * 10);
-
-                if (vertices.Length == 81) ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
-
-                ecb.SetComponent(entity, new LocalTransform { Position = position * scale, Rotation = quaternion.identity, Scale = scale });
-                ecb.SetSharedComponentManaged<RenderMeshArray>(entity, meshArray);
-                ecb.SetComponent(entity, MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0));
-                ecb.SetComponent(entity, new RenderBounds { Value = new AABB { Center = (max + min) * 0.5f, Extents = (max - min) * 0.5f } });
-
-                ecb.SetComponentEnabled<MeshNotCreated>(entity, false);
-
-                if (vertices.Length == 81)
-                {
-                    ecb.SetComponentEnabled<DecorationsNotCreated>(entity, true);
-
-
-                    //ecb.SetComponent(entity, new PhysicsCollider { Value = Unity.Physics.MeshCollider.Create(verticesNativeArray, trianglesNativeArray) });
+                    if (SystemAPI.GetComponent<TerrainCreated>(gameState).terrainCount < 10000)
+                    {
+                        Entity player = SystemAPI.GetSingletonEntity<PlayerTag>();
+                        SystemAPI.SetComponent(player, new PhysicsGravityFactor { Value = 0 });
+                        TerrainCreated terrainCreated = SystemAPI.GetComponent<TerrainCreated>(gameState);
+                        terrainCreated.terrainCount++;
+                        SystemAPI.SetComponent(gameState, terrainCreated);
+                    }
 
                 }
-
-                if (vertices.Length == 25)
+                else if (countLimit >= 5)
                 {
-                    Entity parent = SystemAPI.GetComponent<Parent>(entity).Value;
-                    Entity quadrant = SystemAPI.GetComponent<InfoToQuadrant>(parent).quadrant;
-
-                    ecb.AppendToBuffer<ChunckEntityBuffer>(quadrant, new ChunckEntityBuffer { average = (float)(heightSum / 25), chunckEntity = parent });
+                    break;
                 }
 
-                if (SystemAPI.GetComponent<TerrainCreated>(gameState).terrainCount < 10000)
-                {
-                    Entity player = SystemAPI.GetSingletonEntity<PlayerTag>();
-                    SystemAPI.SetComponent(player, new PhysicsGravityFactor { Value = 0 });
-                    TerrainCreated terrainCreated = SystemAPI.GetComponent<TerrainCreated>(gameState);
-                    terrainCreated.terrainCount++;
-                    SystemAPI.SetComponent(gameState, terrainCreated);
-                }
+                countLimit++;
 
+                //meshData.ValueRW.onMeshGenerated = true;
             }
-            else if(countLimit >= 5)
+
+            ecb.Playback(state.EntityManager);
+
+
+            EntityCommandBuffer ecb3 = new EntityCommandBuffer(Allocator.TempJob);
+
+            GenerateDecorationsJob generateDecorationsJob = new GenerateDecorationsJob
             {
-                break;
-            }
+                mapGeneratorDataJob = mapGeneratorData,
+                entitiesReferences = entitiesReferences,
+                ecb = ecb3.AsParallelWriter(),
+                nextSeed = (uint)(SystemAPI.Time.ElapsedTime * 100 + 1)
+            };
 
-            countLimit++;
+            generateDecorationsJob.ScheduleParallel(state.Dependency).Complete();
 
-            //meshData.ValueRW.onMeshGenerated = true;
+            ecb3.Playback(state.EntityManager);
+
+            ecb3.Dispose();
+
+            ComponentLookup<ChildContainer> childContainerLookUp = SystemAPI.GetComponentLookup<ChildContainer>();
+            ComponentLookup<CoordInfo> coordInfoLookUp = SystemAPI.GetComponentLookup<CoordInfo>();
+            BufferLookup<VerticeFloat3Buffer> verticesLookUp = SystemAPI.GetBufferLookup<VerticeFloat3Buffer>();
+
+            EntityCommandBuffer ecb4 = new EntityCommandBuffer(Allocator.TempJob);
+
+            GenerateEnemiesJob generateEnemiesJob = new GenerateEnemiesJob
+            {
+                ecb = ecb4.AsParallelWriter(),
+                entitiesReferences = entitiesReferences,
+                nextSeed = (uint)(SystemAPI.Time.ElapsedTime * 100 + 1),
+                childContainerLookUp = childContainerLookUp,
+                coordInfoLookUp = coordInfoLookUp,
+                verticesLookUp = verticesLookUp,
+            };
+
+            generateEnemiesJob.ScheduleParallel(state.Dependency).Complete();
+
+            ecb4.Playback(state.EntityManager);
+
+            ecb4.Dispose();
         }
 
-        ecb.Playback(state.EntityManager);
-
-
-        EntityCommandBuffer ecb3 = new EntityCommandBuffer(Allocator.TempJob);
-
-        GenerateDecorationsJob generateDecorationsJob = new GenerateDecorationsJob
-        {
-            mapGeneratorDataJob = mapGeneratorData,
-            entitiesReferences = entitiesReferences,
-            ecb = ecb3.AsParallelWriter(),
-            nextSeed = (uint)(SystemAPI.Time.ElapsedTime * 100 + 1)
-        };
-
-        generateDecorationsJob.ScheduleParallel(state.Dependency).Complete();
-
-        ecb3.Playback(state.EntityManager);
-
-        ecb3.Dispose();
-
-        ComponentLookup<ChildContainer> childContainerLookUp = SystemAPI.GetComponentLookup<ChildContainer>();
-        ComponentLookup<CoordInfo> coordInfoLookUp = SystemAPI.GetComponentLookup<CoordInfo>();
-        BufferLookup<VerticeFloat3Buffer> verticesLookUp = SystemAPI.GetBufferLookup<VerticeFloat3Buffer>();
-
-        EntityCommandBuffer ecb4 = new EntityCommandBuffer(Allocator.TempJob);
-
-        GenerateEnemiesJob generateEnemiesJob = new GenerateEnemiesJob
-        {
-            ecb = ecb4.AsParallelWriter(),
-            entitiesReferences = entitiesReferences,
-            nextSeed = (uint)(SystemAPI.Time.ElapsedTime * 100 + 1),
-            childContainerLookUp = childContainerLookUp,
-            coordInfoLookUp = coordInfoLookUp,
-            verticesLookUp = verticesLookUp,
-        };
-
-        generateEnemiesJob.ScheduleParallel(state.Dependency).Complete();
-
-        ecb4.Playback(state.EntityManager);
-
-        ecb4.Dispose();
+        
 
     }
 }

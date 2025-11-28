@@ -222,7 +222,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyRange: 200
-  enemyAttackRange: 40
+  enemyAttackRange: 50
   enemySpeed: 15
   health: 20
   attackTimer: 1
